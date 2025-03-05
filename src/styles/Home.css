@@ -1,0 +1,64 @@
+.home {
+  padding: 2rem;
+}
+
+.search-section {
+  margin-bottom: 2rem;
+}
+
+.search-input {
+  width: 100%;
+  max-width: 600px;
+  padding: 1rem;
+  font-size: 1.1rem;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+}
+
+.places-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 2rem;
+  margin: 1rem 0;
+}
+
+.place-card {
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s;
+  text-decoration: none;
+  color: inherit;
+}
+
+.place-card:hover {
+  transform: translateY(-4px);
+}
+
+.place-card img {
+  width: 100%;
+  height: 200px;
+  object-fit: cover;
+}
+
+.place-info {
+  padding: 1rem;
+}
+
+.place-info h3 {
+  margin: 0 0 0.5rem 0;
+}
+
+.rating {
+  color: #ffd700;
+  margin-bottom: 0.5rem;
+}
+
+section {
+  margin-bottom: 3rem;
+}
+
+section h2 {
+  margin-bottom: 1.5rem;
+  font-size: 1.8rem;
+} 
