@@ -1,9 +1,12 @@
 import React, { useState, useEffect } from 'react'
 import { db, auth } from '../firebase/config'
-import { doc, getDoc, updateDoc } from 'firebase/firestore'
+import { doc, getDoc, updateDoc, collection, getDocs, setDoc } from 'firebase/firestore'
 import PropTypes from 'prop-types'
 import { Link, useNavigate } from 'react-router-dom'
 import Navbar from '../components/Navbar'
+import { motion } from 'framer-motion'
+import { getReviewCount } from '../utils/ratings'
+import translations from '../utils/translations'
 
 const Profile = ({ language, setLanguage, languages }) => {
   const navigate = useNavigate()
@@ -13,6 +16,11 @@ const Profile = ({ language, setLanguage, languages }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isProfileOpen, setIsProfileOpen] = useState(false)
   const [showLoginModal, setShowLoginModal] = useState(false)
+  const [bookmarkedDestinations, setBookmarkedDestinations] = useState([])
+  const [loadingBookmarks, setLoadingBookmarks] = useState(true)
+  
+  // Get translations for the current language
+  const t = translations[language] || translations.en
   const [profile, setProfile] = useState({
     name: '',
     email: '',
@@ -22,16 +30,17 @@ const Profile = ({ language, setLanguage, languages }) => {
     bio: '',
     preferences: {
       tripTypes: []
-    }
+    },
+    savedDestinations: []
   })
 
   const tripTypes = [
-    { value: 'beach', label: language === 'hi' ? 'समुद्र तट' : 'Beach' },
-    { value: 'mountain', label: language === 'hi' ? 'पर्वत' : 'Mountain' },
-    { value: 'cultural', label: language === 'hi' ? 'सांस्कृतिक' : 'Cultural' },
-    { value: 'adventure', label: language === 'hi' ? 'साहसिक' : 'Adventure' },
-    { value: 'city', label: language === 'hi' ? 'शहर' : 'City' },
-    { value: 'nature', label: language === 'hi' ? 'प्रकृति' : 'Nature' }
+    { value: 'beach', label: t.beach || 'Beach' },
+    { value: 'mountain', label: t.mountain || 'Mountain' },
+    { value: 'cultural', label: t.cultural || 'Cultural' },
+    { value: 'adventure', label: t.adventure || 'Adventure' },
+    { value: 'city', label: t.city || 'City' },
+    { value: 'nature', label: t.nature || 'Nature' }
   ]
 
   const fetchUserData = async () => {
@@ -45,10 +54,18 @@ const Profile = ({ language, setLanguage, languages }) => {
     try {
       const userDoc = await getDoc(doc(db, 'users', auth.currentUser.uid))
       if (userDoc.exists()) {
+        const userData = userDoc.data()
         setProfile({
           ...profile,
-          ...userDoc.data()
+          ...userData
         })
+        
+        // Fetch bookmarked destinations
+        if (userData.savedDestinations && userData.savedDestinations.length > 0) {
+          fetchBookmarkedDestinations(userData.savedDestinations)
+        } else {
+          setLoadingBookmarks(false)
+        }
       }
       setError(null)
     } catch (err) {
@@ -56,6 +73,58 @@ const Profile = ({ language, setLanguage, languages }) => {
       setError('Failed to load profile data')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const fetchBookmarkedDestinations = async (savedIds) => {
+    try {
+      setLoadingBookmarks(true)
+      const destinations = []
+      
+      // Fetch each destination by ID
+      for (const id of savedIds) {
+        const destDoc = await getDoc(doc(db, 'places', id))
+        if (destDoc.exists()) {
+          const data = destDoc.data()
+          destinations.push({
+            id: destDoc.id,
+            ...data,
+            // Calculate review count
+            reviewCount: data.ratings ? Object.keys(data.ratings).length : 0
+          })
+        }
+      }
+      
+      setBookmarkedDestinations(destinations)
+    } catch (err) {
+      console.error('Error fetching bookmarked destinations:', err)
+    } finally {
+      setLoadingBookmarks(false)
+    }
+  }
+
+  const removeBookmark = async (destinationId) => {
+    if (!auth.currentUser) return
+    
+    try {
+      // Remove from state
+      const newSavedDestinations = profile.savedDestinations.filter(id => id !== destinationId)
+      
+      // Update Firestore
+      const userRef = doc(db, 'users', auth.currentUser.uid)
+      await setDoc(userRef, { savedDestinations: newSavedDestinations }, { merge: true })
+      
+      // Update local state
+      setProfile(prev => ({
+        ...prev,
+        savedDestinations: newSavedDestinations
+      }))
+      
+      // Remove from bookmarked destinations
+      setBookmarkedDestinations(prev => prev.filter(dest => dest.id !== destinationId))
+    } catch (err) {
+      console.error('Error removing bookmark:', err)
+      setError('Failed to remove bookmark')
     }
   }
 
@@ -217,22 +286,22 @@ const Profile = ({ language, setLanguage, languages }) => {
             <div className="space-y-4">
               <div className="flex justify-between items-center">
                 <h2 className="text-xl sm:text-2xl font-bold text-gray-900">
-                  {language === 'hi' ? 'प्रोफ़ाइल जानकारी' : 'Profile Information'}
+                  {t.editProfile || 'Profile Information'}
                 </h2>
                 <button
                   onClick={() => setIsEditing(!isEditing)}
                   className="rounded-md bg-blue-600 text-white px-4 py-2 text-sm sm:text-base hover:bg-blue-700 transition-colors"
                 >
                   {isEditing 
-                    ? (language === 'hi' ? 'रद्द करें' : 'Cancel')
-                    : (language === 'hi' ? 'संपादित करें' : 'Edit')}
+                    ? (t.cancel || 'Cancel')
+                    : (t.edit || 'Edit')}
                 </button>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    {language === 'hi' ? 'नाम' : 'Name'}
+                    {t.name || 'Name'}
                   </label>
                   <input
                     type="text"
@@ -244,7 +313,7 @@ const Profile = ({ language, setLanguage, languages }) => {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    {language === 'hi' ? 'ईमेल' : 'Email'}
+                    {t.email || 'Email'}
                   </label>
                   <input
                     type="email"
@@ -256,7 +325,7 @@ const Profile = ({ language, setLanguage, languages }) => {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    {language === 'hi' ? 'फ़ोन' : 'Phone'}
+                    {t.phone || 'Phone'}
                   </label>
                   <input
                     type="tel"
@@ -268,7 +337,7 @@ const Profile = ({ language, setLanguage, languages }) => {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    {language === 'hi' ? 'स्थान' : 'Location'}
+                    {t.location || 'Location'}
                   </label>
                   <input
                     type="text"
@@ -282,7 +351,7 @@ const Profile = ({ language, setLanguage, languages }) => {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {language === 'hi' ? 'बायो' : 'Bio'}
+                  {t.bio || 'Bio'}
                 </label>
                 <textarea
                   value={profile.bio}
@@ -297,7 +366,7 @@ const Profile = ({ language, setLanguage, languages }) => {
             {/* Trip Preferences - Mobile Optimized */}
             <div className="space-y-4">
               <h2 className="text-xl sm:text-2xl font-bold text-gray-900">
-                {language === 'hi' ? 'यात्रा प्राथमिकताएं' : 'Trip Preferences'}
+                {t.tripTypes || 'Trip Preferences'}
               </h2>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 {tripTypes.map((type) => (
@@ -318,6 +387,79 @@ const Profile = ({ language, setLanguage, languages }) => {
               </div>
             </div>
 
+            {/* Bookmarked Destinations Section */}
+            <div className="space-y-4 pt-4 border-t border-gray-200">
+              <h2 className="text-xl sm:text-2xl font-bold text-gray-900">
+                {t.bookmarkedDestinations || 'Bookmarked Destinations'}
+              </h2>
+              
+              {loadingBookmarks ? (
+                <div className="flex justify-center py-8">
+                  <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+                </div>
+              ) : bookmarkedDestinations.length > 0 ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {bookmarkedDestinations.map((destination) => (
+                    <div 
+                      key={destination.id}
+                      className="bg-white rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-all duration-300 transform hover:-translate-y-1 cursor-pointer"
+                      onClick={() => navigate(`/destination/${destination.id}`)}
+                    >
+                      <div className="relative h-48 overflow-hidden group">
+                        <img 
+                          src={destination.images?.[0] || destination.image || 'https://via.placeholder.com/400x300?text=No+Image'} 
+                          alt={destination.name} 
+                          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                        />
+                        {(destination.likes || 0) > 100 && (
+                          <div className="absolute top-4 right-4 bg-red-500 text-white px-3 py-1 rounded-full text-sm font-medium flex items-center space-x-1">
+                            <i className="fas fa-fire"></i>
+                            <span>{t.trending || 'Trending'}</span>
+                          </div>
+                        )}
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            removeBookmark(destination.id);
+                          }}
+                          className="absolute top-4 left-4 bg-white text-red-500 p-2 rounded-full hover:bg-red-50 transition-all"
+                          title={t.delete || 'Remove Bookmark'}
+                        >
+                          <i className="fas fa-trash-alt"></i>
+                        </button>
+                      </div>
+                      <div className="p-6">
+                        <h3 className="text-2xl font-semibold text-gray-900 mb-2">{destination.name}</h3>
+                        <p className="text-gray-600 mb-4 line-clamp-1">{destination.description}</p>
+                        <div className="flex items-center gap-1 text-gray-700">
+                          <i className="fas fa-star text-yellow-400"></i>
+                          <span className="font-semibold">{(destination.averageRating || destination.rating || 0).toFixed(1)}</span>
+                          <span className="text-gray-500">({getReviewCount(destination) || 0} {t.reviews || 'reviews'})</span>
+                          <span className="ml-auto text-gray-500 text-xs">
+                            <i className="fas fa-map-marker-alt mr-1"></i>
+                            {destination.location || `${destination.district || ''}, ${destination.state || ''}`}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-gray-500">
+                  <i className="far fa-bookmark text-4xl mb-2"></i>
+                  <p>
+                    {t.noBookmarks || 'You haven\'t bookmarked any destinations yet'}
+                  </p>
+                  <Link 
+                    to="/explore" 
+                    className="inline-block mt-4 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+                  >
+                    {t.explore || 'Explore Destinations'}
+                  </Link>
+                </div>
+              )}
+            </div>
+
             {/* Action Buttons - Mobile Optimized */}
             {isEditing && (
               <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 pt-4">
@@ -325,13 +467,13 @@ const Profile = ({ language, setLanguage, languages }) => {
                   onClick={handleSave}
                   className="w-full sm:w-auto rounded-md bg-blue-600 text-white px-6 py-2.5 text-base font-medium hover:bg-blue-700 transition-colors touch-manipulation"
                 >
-                  {language === 'hi' ? 'परिवर्तन सहेजें' : 'Save Changes'}
+                  {t.saveChanges || 'Save Changes'}
                 </button>
                 <button
                   onClick={handleCancel}
                   className="w-full sm:w-auto rounded-md bg-gray-100 text-gray-700 px-6 py-2.5 text-base font-medium hover:bg-gray-200 transition-colors touch-manipulation"
                 >
-                  {language === 'hi' ? 'रद्द करें' : 'Cancel'}
+                  {t.cancel || 'Cancel'}
                 </button>
               </div>
             )}

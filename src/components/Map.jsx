@@ -3,6 +3,7 @@ import 'leaflet/dist/leaflet.css'
 import '../styles/Map.css'
 import PropTypes from 'prop-types'
 import L from 'leaflet'
+import { getReviewCount } from '../utils/ratings'
 
 // Fix for default marker icon
 delete L.Icon.Default.prototype._getIconUrl

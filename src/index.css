@@ -316,6 +316,44 @@ button:focus-visible {
   .map-container {
     height: 300px;
   }
+  
+  /* Improve touch targets for mobile */
+  button, a, .nav-link, input[type="checkbox"], input[type="radio"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  /* Adjust font sizes for better readability */
+  body {
+    font-size: 16px;
+  }
+  
+  h1 {
+    font-size: 2.5em;
+  }
+  
+  h2 {
+    font-size: 2em;
+  }
+  
+  h3 {
+    font-size: 1.5em;
+  }
+}
+
+/* Extra small devices */
+@media (max-width: 480px) {
+  .content-wrapper {
+    padding-top: 3.5rem;
+  }
+  
+  .add-place-container h2 {
+    font-size: 1.5rem;
+  }
+  
+  .form-group label {
+    font-size: 0.9rem;
+  }
 }
 
 /* Animations */
@@ -352,7 +390,7 @@ button:focus-visible {
 }
 
 .mobile-menu {
-  @apply fixed top-16 left-0 right-0 bg-white border-t border-gray-200 shadow-lg transform transition-transform duration-200 ease-in-out;
+  @apply fixed top-16 left-0 right-0 bg-white border-t border-gray-200 shadow-lg transform transition-transform duration-200 ease-in-out z-50;
   max-height: calc(100vh - 4rem);
   overflow-y: auto;
 }
@@ -367,6 +405,7 @@ button:focus-visible {
 
 .mobile-menu-link {
   @apply block px-4 py-3 text-gray-700 hover:text-blue-600 hover:bg-gray-50 transition-colors duration-200;
+  touch-action: manipulation;
 }
 
 /* Ensure content doesn't get hidden under fixed navbar */

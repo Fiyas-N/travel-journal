@@ -4,6 +4,7 @@ import PropTypes from 'prop-types';
 import { auth, db } from '../firebase/config';
 import { signOut } from 'firebase/auth';
 import { collection, query, where, getDocs, orderBy, limit } from 'firebase/firestore';
+import translations from '../utils/translations';
 
 const Navbar = ({ 
   language, 
@@ -22,7 +23,9 @@ const Navbar = ({
   const [searchResults, setSearchResults] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
   const [showSearchResults, setShowSearchResults] = useState(false);
+  const [showLanguageDropdown, setShowLanguageDropdown] = useState(false);
   const searchRef = useRef(null);
+  const languageRef = useRef(null);
 
   const handleLogout = async () => {
     try {
@@ -72,6 +75,9 @@ const Navbar = ({
     if (searchRef.current && !searchRef.current.contains(event.target)) {
       setShowSearchResults(false);
     }
+    if (languageRef.current && !languageRef.current.contains(event.target)) {
+      setShowLanguageDropdown(false);
+    }
   };
 
   useEffect(() => {
@@ -86,6 +92,14 @@ const Navbar = ({
     setSearchQuery('');
     navigate(`/destination/${placeId}`);
   };
+
+  const handleLanguageChange = (code) => {
+    setLanguage(code);
+    setShowLanguageDropdown(false);
+  };
+
+  // Get translations for the current language
+  const t = translations[language] || translations.en;
 
   return (
     <nav className="fixed top-0 w-full bg-white shadow-md z-50">
@@ -104,42 +118,46 @@ const Navbar = ({
               to="/"
               className="text-gray-700 hover:text-blue-600 transition-colors duration-200"
             >
-              Home
+              {t.home}
             </Link>
             <Link
               to="/explore"
               className="text-gray-700 hover:text-blue-600 transition-colors duration-200"
             >
-              Explore
+              {t.explore}
             </Link>
-            <Link
-              to="/profile"
-              className="text-gray-700 hover:text-blue-600 transition-colors duration-200"
-            >
-              Profile
-            </Link>
-            <Link
-              to="/recommend"
-              className="text-gray-700 hover:text-blue-600 transition-colors duration-200"
-            >
-              Recommend
-            </Link>
-            <Link
-              to="/add-place"
-              className="text-gray-700 hover:text-blue-600 transition-colors duration-200"
-            >
-              Add Place
-            </Link>
+            {user && (
+              <>
+                <Link
+                  to="/profile"
+                  className="text-gray-700 hover:text-blue-600 transition-colors duration-200"
+                >
+                  {t.profile}
+                </Link>
+                <Link
+                  to="/recommend"
+                  className="text-gray-700 hover:text-blue-600 transition-colors duration-200"
+                >
+                  {t.recommend}
+                </Link>
+                <Link
+                  to="/add-place"
+                  className="text-gray-700 hover:text-blue-600 transition-colors duration-200"
+                >
+                  {t.addPlace}
+                </Link>
+              </>
+            )}
           </div>
 
-          {/* Search and Auth */}
+          {/* Search, Language Selector and Auth */}
           <div className="flex items-center space-x-4">
-            <div className="relative" ref={searchRef}>
+            <div className="relative hidden sm:block" ref={searchRef}>
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => handleSearch(e.target.value)}
-                placeholder={language === 'hi' ? 'गंतव्य खोजें...' : 'Search destinations...'}
+                placeholder={t.searchDestinations}
                 className="w-48 sm:w-64 px-4 py-2 rounded-full border-2 border-gray-200 focus:border-blue-500 focus:outline-none text-sm"
               />
               <i className={`fas ${isSearching ? 'fa-spinner fa-spin' : 'fa-search'} absolute right-4 top-3 text-gray-400`}></i>
@@ -175,7 +193,32 @@ const Navbar = ({
 
               {showSearchResults && searchQuery.trim().length >= 2 && searchResults.length === 0 && (
                 <div className="absolute mt-2 w-full bg-white rounded-lg shadow-lg border border-gray-200 p-4 text-center text-gray-500 text-sm">
-                  {language === 'hi' ? 'कोई परिणाम नहीं मिला' : 'No results found'}
+                  {t.noResultsFound}
+                </div>
+              )}
+            </div>
+
+            {/* Language Selector */}
+            <div className="relative hidden sm:block" ref={languageRef}>
+              <button 
+                onClick={() => setShowLanguageDropdown(!showLanguageDropdown)}
+                className="flex items-center space-x-1 px-3 py-2 rounded-md border border-gray-300 hover:bg-gray-50 transition-colors duration-200"
+              >
+                <span className="text-sm font-medium">{languages.find(lang => lang.code === language)?.name || 'English'}</span>
+                <i className={`fas fa-chevron-${showLanguageDropdown ? 'up' : 'down'} text-xs text-gray-500`}></i>
+              </button>
+              
+              {showLanguageDropdown && (
+                <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
+                  {languages.map((lang) => (
+                    <button
+                      key={lang.code}
+                      onClick={() => handleLanguageChange(lang.code)}
+                      className={`w-full text-left px-4 py-2 hover:bg-gray-50 ${language === lang.code ? 'bg-blue-50 text-blue-600' : 'text-gray-700'}`}
+                    >
+                      {lang.name}
+                    </button>
+                  ))}
                 </div>
               )}
             </div>
@@ -185,14 +228,14 @@ const Navbar = ({
                 onClick={handleLogout}
                 className="bg-red-600 text-white px-6 py-2 rounded-md hover:bg-red-700 transition-colors duration-200"
               >
-                {language === 'hi' ? 'लॉग आउट' : 'Logout'}
+                {t.logout}
               </button>
             ) : (
               <Link
                 to="/auth"
                 className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 transition-colors duration-200"
               >
-                {language === 'hi' ? 'साइन इन करें' : 'Sign In'}
+                {t.signIn}
               </Link>
             )}
           </div>
@@ -211,41 +254,41 @@ const Navbar = ({
 
         {/* Mobile menu */}
         <div className={`md:hidden ${isMenuOpen ? 'block' : 'hidden'}`}>
-          <div className="px-2 pt-2 pb-3 space-y-1">
+          <div className="px-2 pt-2 pb-3 space-y-2">
             <Link
               to="/"
-              className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-50"
+              className="block px-4 py-3 rounded-md text-lg font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-50 active:bg-gray-100"
               onClick={() => setIsMenuOpen(false)}
             >
-              Home
+              <i className="fas fa-home mr-3"></i> {t.home}
             </Link>
             <Link
               to="/explore"
-              className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-50"
+              className="block px-4 py-3 rounded-md text-lg font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-50 active:bg-gray-100"
               onClick={() => setIsMenuOpen(false)}
             >
-              Explore
+              <i className="fas fa-compass mr-3"></i> {t.explore}
             </Link>
             <Link
               to="/profile"
-              className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-50"
+              className="block px-4 py-3 rounded-md text-lg font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-50 active:bg-gray-100"
               onClick={() => setIsMenuOpen(false)}
             >
-              Profile
+              <i className="fas fa-user mr-3"></i> {t.profile}
             </Link>
             <Link
               to="/recommend"
-              className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-50"
+              className="block px-4 py-3 rounded-md text-lg font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-50 active:bg-gray-100"
               onClick={() => setIsMenuOpen(false)}
             >
-              Recommend
+              <i className="fas fa-thumbs-up mr-3"></i> {t.recommend}
             </Link>
             <Link
               to="/add-place"
-              className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-50"
+              className="block px-4 py-3 rounded-md text-lg font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-50 active:bg-gray-100"
               onClick={() => setIsMenuOpen(false)}
             >
-              Add Place
+              <i className="fas fa-plus-circle mr-3"></i> {t.addPlace}
             </Link>
             {user && (
               <button
@@ -255,9 +298,28 @@ const Navbar = ({
                 }}
                 className="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-red-600 hover:text-red-700 hover:bg-gray-50"
               >
-                {language === 'hi' ? 'लॉग आउट' : 'Logout'}
+                {t.logout}
               </button>
             )}
+            
+            {/* Mobile Language Selector */}
+            <div className="px-3 py-2">
+              <p className="text-sm font-medium text-gray-500 mb-2">{t.selectLanguage}</p>
+              <div className="grid grid-cols-2 gap-2">
+                {languages.map((lang) => (
+                  <button
+                    key={lang.code}
+                    onClick={() => {
+                      handleLanguageChange(lang.code);
+                      setIsMenuOpen(false);
+                    }}
+                    className={`px-3 py-2 text-sm rounded-md ${language === lang.code ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-700'}`}
+                  >
+                    {lang.name}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -277,4 +339,4 @@ Navbar.propTypes = {
   setIsProfileOpen: PropTypes.func.isRequired
 };
 
-export default Navbar; 
+export default Navbar;

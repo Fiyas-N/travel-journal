@@ -4,6 +4,7 @@ import PropTypes from 'prop-types';
 import Navbar from '../components/Navbar';
 import { db, auth } from '../firebase/config';
 import { collection, getDocs, doc, getDoc, setDoc } from 'firebase/firestore';
+import DestinationCard from '../components/DestinationCard';
 
 const Explore = ({ language, setLanguage, languages, user }) => {
   const navigate = useNavigate();
@@ -24,10 +25,30 @@ const Explore = ({ language, setLanguage, languages, user }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // Redirect unauthenticated users trying to access protected features
+  const checkAuth = () => {
+    if (!user) {
+      navigate('/auth');
+      return false;
+    }
+    return true;
+  };
+
+  // Check authentication when component mounts
+  useEffect(() => {
+    if (!user) {
+      navigate('/auth');
+      return;
+    }
+  }, [user, navigate]);
+
   // Fetch user's saved destinations
   useEffect(() => {
     const fetchSavedDestinations = async () => {
-      if (!user) return;
+      if (!user) {
+        setSavedDestinations([]);
+        return;
+      }
       try {
         const userDoc = await getDoc(doc(db, 'users', user.uid));
         if (userDoc.exists()) {
@@ -35,6 +56,7 @@ const Explore = ({ language, setLanguage, languages, user }) => {
         }
       } catch (err) {
         console.error('Error fetching saved destinations:', err);
+        // Don't set error state here as it would override the main content
       }
     };
 
@@ -43,40 +65,87 @@ const Explore = ({ language, setLanguage, languages, user }) => {
 
   // Fetch all destinations
   useEffect(() => {
-    const fetchDestinations = async () => {
+    const fetchDestinations = async (retryCount = 0) => {
       try {
         setLoading(true);
-        const placesSnapshot = await getDocs(collection(db, 'places'));
-        console.log('Fetched places:', placesSnapshot.docs.length);
-        
-        const fetchedDestinations = placesSnapshot.docs.map(doc => {
-          const data = doc.data();
-          return {
-            id: doc.id,
-            ...data,
-            trending: (data.likes || 0) > 100,
-            rating: data.averageRating || 0,
-            reviews: data.reviews?.length || 0,
-            name: data.name || 'Unnamed Destination',
-            description: data.description || 'No description available',
-            image: data.images?.[0] || data.image || 'https://via.placeholder.com/400x300?text=No+Image'
-          };
-        });
-
-        console.log('Processed destinations:', fetchedDestinations.length);
-        setDestinations(fetchedDestinations);
-        setFilteredDestinations(fetchedDestinations);
         setError(null);
+        
+        // Add error handling for potential Firebase initialization issues
+        if (!db) {
+          console.error('Firebase database not initialized');
+          setError('Service unavailable. Please try again later.');
+          setLoading(false);
+          return;
+        }
+        
+        // We want to fetch public data regardless of authentication status
+        console.log('Fetching destinations, auth status:', user ? 'authenticated' : 'not authenticated');
+        
+        try {
+          // Try to fetch from Firebase
+          const placesCollection = collection(db, 'places');
+          const placesSnapshot = await getDocs(placesCollection);
+          console.log('Fetched places from Firebase:', placesSnapshot.docs.length);
+          
+          if (placesSnapshot.empty) {
+            console.log('No destinations found in database');
+            setDestinations([]);
+            setFilteredDestinations([]);
+            setError('No destinations found. Please check back later.');
+          } else {
+            const fetchedDestinations = placesSnapshot.docs.map(doc => {
+              const data = doc.data();
+              
+              // Get the ratings count from the ratings object
+              let ratingCount = 0;
+              if (data.ratings && typeof data.ratings === 'object') {
+                // Count the number of keys in the ratings object
+                ratingCount = Object.keys(data.ratings).length;
+              }
+              
+              return {
+                id: doc.id,
+                ...data,
+                trending: (data.likes || 0) > 100,
+                rating: data.averageRating || 0,
+                reviewCount: ratingCount,
+                name: data.name || 'Unnamed Destination',
+                description: data.description || 'No description available',
+                image: data.images?.[0] || data.image || 'https://via.placeholder.com/400x300?text=No+Image'
+              };
+            });
+
+            console.log('Processed destinations:', fetchedDestinations.length);
+            setDestinations(fetchedDestinations);
+            setFilteredDestinations(fetchedDestinations);
+            setError(null);
+          }
+        } catch (err) {
+          console.error('Error fetching from Firebase:', err);
+          setDestinations([]);
+          setFilteredDestinations([]);
+          setError('Failed to load destinations. Please try again later.');
+        }
       } catch (err) {
-        console.error('Error fetching destinations:', err);
-        setError('Failed to load destinations');
+        console.error('Error in main try block:', err);
+        
+        // If we haven't exceeded max retries, try again
+        if (retryCount < 2) {
+          console.log(`Retrying fetch (attempt ${retryCount + 1})...`);
+          setTimeout(() => fetchDestinations(retryCount + 1), 1500);
+          return;
+        }
+        
+        setDestinations([]);
+        setFilteredDestinations([]);
+        setError('Failed to load destinations after multiple attempts. Please try again later.');
       } finally {
         setLoading(false);
       }
     };
 
     fetchDestinations();
-  }, []);
+  }, [user]); // Add user as a dependency to refetch when auth state changes
 
   // Handle saving/unsaving destinations
   const toggleSaveDestination = async (id) => {
@@ -88,6 +157,15 @@ const Explore = ({ language, setLanguage, languages, user }) => {
     try {
       const userRef = doc(db, 'users', user.uid);
       const userDoc = await getDoc(userRef);
+      
+      // Check if document exists and has data
+      if (!userDoc.exists()) {
+        // Create new user document if it doesn't exist
+        await setDoc(userRef, { savedDestinations: [id] });
+        setSavedDestinations([id]);
+        return;
+      }
+      
       const currentSaved = userDoc.data()?.savedDestinations || [];
       
       const newSaved = currentSaved.includes(id)
@@ -183,8 +261,70 @@ const Explore = ({ language, setLanguage, languages, user }) => {
             <div className="text-2xl text-gray-600">Loading...</div>
           </div>
         ) : error ? (
-          <div className="flex items-center justify-center min-h-[60vh]">
-            <div className="text-xl text-red-600">{error}</div>
+          <div className="flex flex-col items-center justify-center min-h-[60vh]">
+            <div className="text-xl text-red-600 mb-4">{error}</div>
+            <button 
+              onClick={() => {
+                setLoading(true);
+                setTimeout(() => {
+                  const fetchDestinations = async () => {
+                    try {
+                      setError(null);
+                      
+                      // Check if Firebase is initialized
+                      if (!db) {
+                        console.error('Firebase database not initialized');
+                        setError('Service unavailable. Please try again later.');
+                        setLoading(false);
+                        return;
+                      }
+                      
+                      const placesCollection = collection(db, 'places');
+                      const placesSnapshot = await getDocs(placesCollection);
+                      
+                      if (placesSnapshot.empty) {
+                        setDestinations([]);
+                        setFilteredDestinations([]);
+                        setError('No destinations found. Try adding some places!');
+                        return;
+                      }
+                      
+                      const fetchedDestinations = placesSnapshot.docs.map(doc => {
+                        const data = doc.data();
+                        let ratingCount = 0;
+                        if (data.ratings && typeof data.ratings === 'object') {
+                          ratingCount = Object.keys(data.ratings).length;
+                        }
+                        
+                        return {
+                          id: doc.id,
+                          ...data,
+                          trending: (data.likes || 0) > 100,
+                          rating: data.averageRating || 0,
+                          reviewCount: ratingCount,
+                          name: data.name || 'Unnamed Destination',
+                          description: data.description || 'No description available',
+                          image: data.images?.[0] || data.image || 'https://via.placeholder.com/400x300?text=No+Image'
+                        };
+                      });
+
+                      setDestinations(fetchedDestinations);
+                      setFilteredDestinations(fetchedDestinations);
+                      setError(null);
+                    } catch (err) {
+                      console.error('Error fetching destinations:', err);
+                      setError('Failed to load places. Please try again later.');
+                    } finally {
+                      setLoading(false);
+                    }
+                  };
+                  fetchDestinations();
+                }, 1000);
+              }}
+              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+            >
+              {language === 'hi' ? 'पुनः प्रयास करें' : 'Try Again'}
+            </button>
           </div>
         ) : (
           <>
@@ -288,61 +428,13 @@ const Explore = ({ language, setLanguage, languages, user }) => {
                 </div>
               ) : (
                 filteredDestinations.map((destination) => (
-                  <div
-                    key={destination.id}
-                    className="bg-white rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-all duration-300 transform hover:-translate-y-1 cursor-pointer"
-                    onClick={() => handleDestinationClick(destination.id)}
-                  >
-                    <div className="relative h-48 overflow-hidden group">
-                      <img
-                        src={destination.image}
-                        alt={destination.name}
-                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                        onError={(e) => {
-                          e.target.src = 'https://via.placeholder.com/400x300?text=No+Image';
-                        }}
-                      />
-                      {destination.trending && (
-                        <div className="absolute top-4 right-4 bg-red-500 text-white px-3 py-1 rounded-full text-sm font-medium flex items-center space-x-1">
-                          <i className="fas fa-fire"></i>
-                          <span>{language === 'hi' ? 'ट्रेंडिंग' : 'Trending'}</span>
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="p-6">
-                      <h3 className="text-xl font-semibold mb-2 text-gray-800 hover:text-blue-600 transition-colors duration-300">
-                        {destination.name}
-                      </h3>
-                      <p className="text-gray-600 mb-4 line-clamp-2">{destination.description}</p>
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center">
-                          <div className="flex items-center text-yellow-400">
-                            <i className="fas fa-star"></i>
-                          </div>
-                          <span className="ml-1 font-medium text-gray-800">
-                            {destination.rating.toFixed(1)}
-                          </span>
-                          <span className="text-gray-500 ml-1">
-                            ({destination.reviews} {language === 'hi' ? 'समीक्षाएं' : 'reviews'})
-                          </span>
-                        </div>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            toggleSaveDestination(destination.id);
-                          }}
-                          className={`text-2xl transition-colors duration-300 transform hover:scale-110 ${
-                            savedDestinations.includes(destination.id)
-                              ? 'text-blue-600'
-                              : 'text-gray-400 hover:text-blue-600'
-                          }`}
-                        >
-                          <i className={`fas ${savedDestinations.includes(destination.id) ? 'fa-bookmark' : 'fa-bookmark'}`}></i>
-                        </button>
-                      </div>
-                    </div>
-                  </div>
+                  <DestinationCard 
+                    key={destination.id} 
+                    destination={destination} 
+                    language={language} 
+                    onBookmarkToggle={toggleSaveDestination}
+                    savedDestinations={savedDestinations}
+                  />
                 ))
               )}
             </div>
@@ -360,4 +452,4 @@ Explore.propTypes = {
   user: PropTypes.object
 };
 
-export default Explore; 
+export default Explore;

@@ -6,8 +6,10 @@ import PropTypes from 'prop-types'
 import '../styles/DestinationDetails.css'
 import Map from '../components/Map'
 import Navbar from '../components/Navbar'
+import { getReviewCount } from '../utils/ratings'
+import translations from '../utils/translations'
 
-const DestinationDetails = ({ language, setLanguage, languages }) => {
+const DestinationDetails = ({ language, setLanguage, languages, user }) => {
   const navigate = useNavigate()
   const { id } = useParams()
   const [place, setPlace] = useState(null)
@@ -28,11 +30,23 @@ const DestinationDetails = ({ language, setLanguage, languages }) => {
   const [selectedImageIndex, setSelectedImageIndex] = useState(0)
   const [imageLoadError, setImageLoadError] = useState({})
 
+  // Get translations for the current language
+  const t = translations[language] || translations.en
+
   useEffect(() => {
     fetchPlaceDetails()
     fetchComments()
-    checkUserLike()
-  }, [id])
+    if (user) {
+      checkUserLike()
+    }
+  }, [id, user])
+
+  // Redirect unauthorized users to login page
+  useEffect(() => {
+    if (!user) {
+      navigate('/auth')
+    }
+  }, [user, navigate])
 
   const fetchPlaceDetails = async () => {
     try {
@@ -45,7 +59,7 @@ const DestinationDetails = ({ language, setLanguage, languages }) => {
       setLoading(false)
     } catch (err) {
       console.error('Error fetching place:', err)
-      setError('Failed to load destination details')
+      setError('Failed to load destination details. Please try again.')
       setLoading(false)
     }
   }
@@ -68,12 +82,12 @@ const DestinationDetails = ({ language, setLanguage, languages }) => {
   }
 
   const checkUserLike = async () => {
-    if (!auth.currentUser) return
+    if (!user) return
     try {
       const likesQuery = query(
         collection(db, 'likes'),
         where('placeId', '==', id),
-        where('userId', '==', auth.currentUser.uid)
+        where('userId', '==', user.uid)
       )
       const snapshot = await getDocs(likesQuery)
       setHasLiked(!snapshot.empty)
@@ -88,22 +102,22 @@ const DestinationDetails = ({ language, setLanguage, languages }) => {
 
   const handleCommentSubmit = async (e) => {
     e.preventDefault()
-    if (!auth.currentUser) {
-      setShowLoginModal(true)
+    if (!user) {
+      navigate('/auth')
       return
     }
 
     try {
       // Get user's profile data to ensure we have the most up-to-date name
-      const userDoc = await getDoc(doc(db, 'users', auth.currentUser.uid))
+      const userDoc = await getDoc(doc(db, 'users', user.uid))
       const userData = userDoc.data()
       
       // Use user's name from profile, or display name from auth, or email as fallback
-      const userName = userData?.name || auth.currentUser.displayName || auth.currentUser.email?.split('@')[0] || 'User'
+      const userName = userData?.name || user.displayName || user.email?.split('@')[0] || 'User'
 
       const newComment = {
         placeId: id,
-        userId: auth.currentUser.uid,
+        userId: user.uid,
         userName: userName,
         userImage: userData?.profileImage || null, // Include user's profile image if available
         text: comment,
@@ -121,8 +135,8 @@ const DestinationDetails = ({ language, setLanguage, languages }) => {
   }
 
   const handleLike = async () => {
-    if (!auth.currentUser) {
-      setShowLoginModal(true)
+    if (!user) {
+      navigate('/auth')
       return
     }
 
@@ -136,7 +150,7 @@ const DestinationDetails = ({ language, setLanguage, languages }) => {
         const likesQuery = query(
           collection(db, 'likes'),
           where('placeId', '==', id),
-          where('userId', '==', auth.currentUser.uid)
+          where('userId', '==', user.uid)
         )
         const snapshot = await getDocs(likesQuery)
         snapshot.docs.forEach(async (doc) => {
@@ -145,7 +159,7 @@ const DestinationDetails = ({ language, setLanguage, languages }) => {
       } else {
         await addDoc(collection(db, 'likes'), {
           placeId: id,
-          userId: auth.currentUser.uid,
+          userId: user.uid,
           createdAt: new Date().toISOString()
         })
       }
@@ -161,7 +175,7 @@ const DestinationDetails = ({ language, setLanguage, languages }) => {
   }
 
   const handleRating = (value) => {
-    if (!auth.currentUser) {
+    if (!user) {
       setShowLoginModal(true)
       return
     }
@@ -170,10 +184,12 @@ const DestinationDetails = ({ language, setLanguage, languages }) => {
   }
 
   const submitRating = async () => {
+    if (!user) return
+    
     try {
       const placeRef = doc(db, 'places', id)
       const currentRatings = place.ratings || {}
-      currentRatings[auth.currentUser.uid] = userRating
+      currentRatings[user.uid] = userRating
       
       // Calculate new average rating
       const ratings = Object.values(currentRatings)
@@ -196,8 +212,8 @@ const DestinationDetails = ({ language, setLanguage, languages }) => {
   }
 
   const handleDeleteComment = async (commentId) => {
-    if (!auth.currentUser) return;
-
+    if (!user) return;
+    
     try {
       await deleteDoc(doc(db, 'comments', commentId));
       // Refresh comments after deletion
@@ -209,7 +225,7 @@ const DestinationDetails = ({ language, setLanguage, languages }) => {
   };
 
   const handleCommentLike = async (commentId) => {
-    if (!auth.currentUser) {
+    if (!user) {
       setShowLoginModal(true)
       return
     }
@@ -219,7 +235,7 @@ const DestinationDetails = ({ language, setLanguage, languages }) => {
       const commentDoc = await getDoc(commentRef)
       const currentLikes = commentDoc.data().likes || 0
       const likedBy = commentDoc.data().likedBy || []
-      const userId = auth.currentUser.uid
+      const userId = user.uid
 
       if (likedBy.includes(userId)) {
         // Unlike
@@ -243,10 +259,22 @@ const DestinationDetails = ({ language, setLanguage, languages }) => {
     }
   }
 
+  // Helper function to get translated category name
+  const getTranslatedCategory = (category) => {
+    if (!category) return '';
+    return t[category] || category;
+  }
+
+  // Helper function to get translated content
+  const getTranslatedContent = (content) => {
+    if (!content) return '';
+    return content;
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-2xl text-gray-600">Loading...</div>
+        <div className="text-2xl text-gray-600">{t.loading}</div>
       </div>
     )
   }
@@ -267,7 +295,7 @@ const DestinationDetails = ({ language, setLanguage, languages }) => {
         language={language}
         setLanguage={setLanguage}
         languages={languages}
-        user={auth.currentUser}
+        user={user}
         setShowLoginModal={setShowLoginModal}
         isMenuOpen={isMenuOpen}
         setIsMenuOpen={setIsMenuOpen}
@@ -304,7 +332,7 @@ const DestinationDetails = ({ language, setLanguage, languages }) => {
               </div>
               <div className="flex items-center">
                 <i className="fas fa-map-marker-alt mr-2"></i>
-                <span>{place.location}</span>
+                <span>{place.district}, {place.state}, {place.country}</span>
               </div>
             </div>
           </div>
@@ -314,7 +342,7 @@ const DestinationDetails = ({ language, setLanguage, languages }) => {
       {showRatingModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 max-w-sm w-full mx-4">
-            <h3 className="text-xl font-bold mb-4">Submit Your Rating</h3>
+            <h3 className="text-xl font-bold mb-4">{t.submitReview}</h3>
             <div className="flex justify-center mb-4">
               {[1, 2, 3, 4, 5].map((star) => (
                 <i
@@ -328,13 +356,13 @@ const DestinationDetails = ({ language, setLanguage, languages }) => {
                 onClick={() => setShowRatingModal(false)}
                 className="px-4 py-2 text-gray-600 hover:text-gray-800 rounded-md whitespace-nowrap"
               >
-                Cancel
+                {t.cancel}
               </button>
               <button
                 onClick={submitRating}
                 className="px-4 py-2 bg-blue-600 text-white hover:bg-blue-700 rounded-md whitespace-nowrap"
               >
-                Submit
+                {t.submit}
               </button>
             </div>
           </div>
@@ -345,10 +373,10 @@ const DestinationDetails = ({ language, setLanguage, languages }) => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2">
             <div className="bg-white rounded-lg shadow-lg p-6 mb-8">
-              <h2 className="text-2xl font-bold mb-4">About Destination</h2>
-              <p className="text-gray-600 leading-relaxed mb-6">
-                {place.description}
-              </p>
+              <h2 className="text-2xl font-bold mb-4">{t.description}</h2>
+              <div className="text-gray-700 mb-6 whitespace-pre-line">
+                {getTranslatedContent(place.description)}
+              </div>
               <div className="flex flex-wrap gap-2 mb-6">
                 {place.tags?.map((tag, index) => (
                   <span key={index} className="px-3 py-1 bg-blue-100 text-blue-600 rounded-full text-sm">
@@ -360,20 +388,20 @@ const DestinationDetails = ({ language, setLanguage, languages }) => {
 
             <div className="bg-white rounded-lg shadow-lg p-6 mb-8">
               <div className="flex justify-between items-center mb-6">
-                <h2 className="text-2xl font-bold">Reviews & Comments</h2>
+                <h2 className="text-2xl font-bold">{t.reviews}</h2>
                 <button
                   className="rounded-md whitespace-nowrap flex items-center text-blue-600"
                   onClick={handleLike}
                 >
                   <i className={`${hasLiked ? 'fas' : 'far'} fa-heart mr-2`}></i>
-                  {hasLiked ? 'Liked' : 'Like'}
+                  {hasLiked ? t.liked || 'Liked' : t.like || 'Like'}
                 </button>
               </div>
               <div className="mb-6">
                 <textarea
                   className="w-full p-3 border border-gray-200 rounded-lg resize-none focus:outline-none focus:border-blue-500"
                   rows={3}
-                  placeholder={language === 'hi' ? 'अपना अनुभव साझा करें...' : 'Share your experience...'}
+                  placeholder={t.writeReview}
                   value={comment}
                   onChange={(e) => setComment(e.target.value)}
                 ></textarea>
@@ -381,7 +409,7 @@ const DestinationDetails = ({ language, setLanguage, languages }) => {
                   onClick={handleCommentSubmit}
                   className="rounded-md whitespace-nowrap mt-2 bg-blue-600 text-white px-6 py-2 hover:bg-blue-700"
                 >
-                  {language === 'hi' ? 'टिप्पणी पोस्ट करें' : 'Post Comment'}
+                  {t.submitReview}
                 </button>
               </div>
               <div className="space-y-6">
@@ -399,11 +427,11 @@ const DestinationDetails = ({ language, setLanguage, languages }) => {
                           <span className="text-sm text-gray-500">
                             {new Date(comment.createdAt).toLocaleDateString()}
                           </span>
-                          {auth.currentUser && comment.userId === auth.currentUser.uid && (
+                          {user && comment.userId === user.uid && (
                             <button
                               onClick={() => handleDeleteComment(comment.id)}
                               className="text-red-500 hover:text-red-700 transition-colors p-1 rounded-full hover:bg-red-50"
-                              title={language === 'hi' ? 'टिप्पणी हटाएं' : 'Delete comment'}
+                              title={t.delete}
                             >
                               <i className="fas fa-trash-alt text-sm"></i>
                             </button>
@@ -416,7 +444,7 @@ const DestinationDetails = ({ language, setLanguage, languages }) => {
                           onClick={() => handleCommentLike(comment.id)}
                           className="flex items-center hover:text-blue-600 transition-colors"
                         >
-                          <i className={`${comment.likedBy?.includes(auth.currentUser?.uid) ? 'fas text-blue-600' : 'far'} fa-heart mr-1`}></i>
+                          <i className={`${comment.likedBy?.includes(user?.uid) ? 'fas text-blue-600' : 'far'} fa-heart mr-1`}></i>
                           {comment.likes || 0}
                         </button>
                       </div>
@@ -429,7 +457,21 @@ const DestinationDetails = ({ language, setLanguage, languages }) => {
 
           <div className="lg:col-span-1">
             <div className="bg-white rounded-lg shadow-lg p-6 mb-8">
-              <h2 className="text-xl font-bold mb-4">Photo Gallery</h2>
+              <h2 className="text-xl font-bold mb-4">{t.location}</h2>
+              <div className="text-gray-700 mb-4">
+                <div className="flex items-center mb-2">
+                  <i className="fas fa-map-marker-alt text-red-500 mr-2"></i>
+                  <span>{place.district}, {place.state}, {place.country}</span>
+                </div>
+                <div className="flex items-center mb-2">
+                  <i className="fas fa-tag text-blue-500 mr-2"></i>
+                  <span>{getTranslatedCategory(place.category)}</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-lg shadow-lg p-6 mb-8">
+              <h2 className="text-xl font-bold mb-4">{t.imageNotAvailable ? t.imageNotAvailable.replace('not available', 'Gallery') : 'Photo Gallery'}</h2>
               {place.images && place.images.length > 0 ? (
                 <>
                   <div className="grid grid-cols-2 gap-4">
@@ -466,9 +508,7 @@ const DestinationDetails = ({ language, setLanguage, languages }) => {
                       }}
                       className="w-full mt-4 text-blue-600 hover:text-blue-700 text-sm"
                     >
-                      {language === 'hi' 
-                        ? `+${place.images.length - 4} और छवियां देखें`
-                        : `View ${place.images.length - 4} more photos`}
+                      {t.viewAll ? `${t.viewAll} ${place.images.length - 4} ${t.more || 'more photos'}` : `View ${place.images.length - 4} more photos`}
                     </button>
                   )}
                 </>
@@ -476,7 +516,7 @@ const DestinationDetails = ({ language, setLanguage, languages }) => {
                 <div className="aspect-video bg-gray-100 rounded-lg flex items-center justify-center">
                   <div className="text-center text-gray-500">
                     <i className="fas fa-image text-3xl mb-2"></i>
-                    <p>{language === 'hi' ? 'कोई छवि उपलब्ध नहीं है' : 'No images available'}</p>
+                    <p>{t.imageNotAvailable}</p>
                   </div>
                 </div>
               )}
@@ -548,7 +588,8 @@ const DestinationDetails = ({ language, setLanguage, languages }) => {
 DestinationDetails.propTypes = {
   language: PropTypes.string.isRequired,
   setLanguage: PropTypes.func.isRequired,
-  languages: PropTypes.array.isRequired
+  languages: PropTypes.array.isRequired,
+  user: PropTypes.object
 }
 
-export default DestinationDetails 
+export default DestinationDetails

@@ -1,9 +1,13 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { auth, db } from '../firebase/config'
-import { collection, addDoc } from 'firebase/firestore'
+import { collection, addDoc, query, where, getDocs, doc, deleteDoc, updateDoc } from 'firebase/firestore'
 import Navbar from '../components/Navbar'
 import PropTypes from 'prop-types'
+import { getReviewCount } from '../utils/ratings'
+import { motion } from 'framer-motion'
+import { getAllCountries } from '../utils/countries'
+import { getAllStates, getDistrictsForState } from '../utils/indiaLocations'
 
 const AddPlace = ({ language, setLanguage, languages }) => {
   const navigate = useNavigate()
@@ -14,7 +18,9 @@ const AddPlace = ({ language, setLanguage, languages }) => {
   const [category, setCategory] = useState('')
   const [tags, setTags] = useState([])
   const [rating, setRating] = useState(0)
-  const [location, setLocation] = useState('')
+  const [district, setDistrict] = useState('')
+  const [state, setState] = useState('')
+  const [country, setCountry] = useState('')
   const [inputTag, setInputTag] = useState('')
   const [showTagError, setShowTagError] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -23,6 +29,11 @@ const AddPlace = ({ language, setLanguage, languages }) => {
   const [isProfileOpen, setIsProfileOpen] = useState(false)
   const [showLoginModal, setShowLoginModal] = useState(false)
   const [error, setError] = useState(null)
+  const [userDestinations, setUserDestinations] = useState([])
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [destinationToDelete, setDestinationToDelete] = useState(null)
+  const [editMode, setEditMode] = useState(false)
+  const [destinationToEdit, setDestinationToEdit] = useState(null)
 
   const categories = [
     { value: 'beach', label: language === 'hi' ? 'समुद्र तट' : 'Beach' },
@@ -44,6 +55,45 @@ const AddPlace = ({ language, setLanguage, languages }) => {
 
     return () => unsubscribe()
   }, [navigate])
+
+  useEffect(() => {
+    const fetchUserDestinations = async () => {
+      if (!auth.currentUser) return;
+      
+      try {
+        setLoading(true);
+        const userDestinationsQuery = query(
+          collection(db, 'places'),
+          where('userId', '==', auth.currentUser.uid)
+        );
+        
+        const snapshot = await getDocs(userDestinationsQuery);
+        const destinations = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }));
+        
+        setUserDestinations(destinations);
+        setError(null);
+      } catch (err) {
+        console.error('Error fetching user destinations:', err);
+        setError('Failed to load your destinations. Please try again.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUserDestinations();
+  }, []);
+
+  useEffect(() => {
+    if (state === 'India') {
+      const stateDistricts = getDistrictsForState(state);
+      if (district && !stateDistricts.includes(district)) {
+        setDistrict('');
+      }
+    }
+  }, [state]);
 
   const compressImage = (file) => {
     return new Promise((resolve) => {
@@ -132,6 +182,53 @@ const AddPlace = ({ language, setLanguage, languages }) => {
     setTags(tags.filter(tag => tag !== tagToRemove))
   }
 
+  const handleEditClick = (e, destination) => {
+    e.stopPropagation();
+    setDestinationToEdit(destination);
+    setEditMode(true);
+    
+    setPlaceName(destination.name || '');
+    setDescription(destination.description || '');
+    setCategory(destination.category || '');
+    setTags(destination.tags || []);
+    setRating(destination.rating || 0);
+    setDistrict(destination.district || '');
+    setState(destination.state || '');
+    setCountry(destination.country || '');
+    setImages(destination.images || []);
+    
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleDeleteClick = (e, destination) => {
+    e.stopPropagation();
+    setDestinationToDelete(destination);
+    setShowDeleteModal(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!destinationToDelete) return;
+    
+    try {
+      setLoading(true);
+      await deleteDoc(doc(db, 'places', destinationToDelete.id));
+      
+      setUserDestinations(prev => prev.filter(d => d.id !== destinationToDelete.id));
+      
+      setShowSuccessMessage(true);
+      setTimeout(() => {
+        setShowSuccessMessage(false);
+      }, 2000);
+    } catch (err) {
+      console.error('Error deleting destination:', err);
+      setError('Failed to delete destination. Please try again.');
+    } finally {
+      setLoading(false);
+      setShowDeleteModal(false);
+      setDestinationToDelete(null);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     setLoading(true)
@@ -150,6 +247,42 @@ const AddPlace = ({ language, setLanguage, languages }) => {
         throw new Error('Please enter a place name')
       }
 
+      // Check if a destination with the same name and location already exists
+      const nameToCheck = placeName.trim().toLowerCase();
+      const countryToCheck = country.trim().toLowerCase();
+      const stateToCheck = state.trim().toLowerCase();
+      const districtToCheck = district.trim().toLowerCase();
+      
+      // Only check for duplicates if we're adding a new place (not editing)
+      if (!editMode) {
+        // Get places by the current user to check for duplicates (more efficient than fetching all places)
+        const placesQuery = query(
+          collection(db, 'places'),
+          where('userId', '==', auth.currentUser.uid)
+        );
+        
+        const placesSnapshot = await getDocs(placesQuery);
+        
+        // Check if the user already has a place with the same name and location (case-insensitive)
+        const duplicatePlace = placesSnapshot.docs.find(doc => {
+          const placeData = doc.data();
+          return (
+            placeData.name.trim().toLowerCase() === nameToCheck &&
+            placeData.country.trim().toLowerCase() === countryToCheck &&
+            placeData.state.trim().toLowerCase() === stateToCheck &&
+            placeData.district.trim().toLowerCase() === districtToCheck
+          );
+        });
+        
+        if (duplicatePlace) {
+          throw new Error(
+            language === 'hi'
+              ? 'यह स्थान पहले से ही जोड़ा गया है। कृपया कोई अन्य स्थान जोड़ें।'
+              : 'This destination already exists with the same name and location. Please add a different place.'
+          );
+        }
+      }
+
       if (!description.trim()) {
         throw new Error('Please enter a description')
       }
@@ -158,56 +291,235 @@ const AddPlace = ({ language, setLanguage, languages }) => {
         throw new Error('Please select a category')
       }
 
-      if (!location.trim()) {
-        throw new Error('Please enter a location')
+      if (!district.trim()) {
+        throw new Error('Please enter a district')
+      }
+
+      if (!state.trim()) {
+        throw new Error('Please enter a state')
+      }
+
+      if (!country.trim()) {
+        throw new Error('Please enter a country')
       }
 
       if (rating === 0) {
         throw new Error('Please set a rating')
       }
 
-      // Create place document with base64 images
       const placeData = {
         name: placeName.trim(),
         description: description.trim(),
         category,
         tags,
         rating,
-        location: location.trim(),
-        images: images, // Store base64 strings directly
+        district: district.trim(),
+        state: state.trim(),
+        country: country.trim(),
+        images: images,
         userId: auth.currentUser.uid,
-        createdAt: new Date().toISOString(),
-        likes: 0,
-        averageRating: rating,
-        ratings: {
+        updatedAt: new Date().toISOString()
+      };
+      
+      if (editMode && destinationToEdit) {
+        await updateDoc(doc(db, 'places', destinationToEdit.id), placeData);
+        
+        setUserDestinations(prev => 
+          prev.map(d => d.id === destinationToEdit.id ? { ...d, ...placeData, id: destinationToEdit.id } : d)
+        );
+        
+        setShowSuccessMessage(true);
+        setTimeout(() => {
+          setShowSuccessMessage(false);
+        }, 2000);
+      } else {
+        placeData.createdAt = new Date().toISOString();
+        placeData.likes = 0;
+        placeData.averageRating = rating;
+        placeData.ratings = {
           [auth.currentUser.uid]: rating
-        }
+        };
+        
+        const docRef = await addDoc(collection(db, 'places'), placeData);
+        
+        setUserDestinations(prev => [...prev, { id: docRef.id, ...placeData }]);
+        
+        setShowSuccessMessage(true);
+        setTimeout(() => {
+          setShowSuccessMessage(false);
+        }, 2000);
       }
-
-      const docRef = await addDoc(collection(db, 'places'), placeData)
-      console.log('Document added successfully:', docRef.id)
-
-      setShowSuccessMessage(true)
-      setTimeout(() => {
-        setShowSuccessMessage(false)
-        navigate('/recommend')
-      }, 2000)
-
-      // Reset form
-      setImages([])
-      setPlaceName('')
-      setDescription('')
-      setCategory('')
-      setTags([])
-      setRating(0)
-      setLocation('')
+      
+      resetForm();
     } catch (error) {
       console.error('Error in handleSubmit:', error)
-      setError(error.message || 'Failed to add place')
+      setError(error.message || 'Failed to save place')
     } finally {
       setLoading(false)
     }
   }
+
+  const resetForm = () => {
+    setImages([]);
+    setPlaceName('');
+    setDescription('');
+    setCategory('');
+    setTags([]);
+    setRating(0);
+    setDistrict('');
+    setState('');
+    setCountry('');
+    setInputTag('');
+    setEditMode(false);
+    setDestinationToEdit(null);
+  }
+
+  const renderUserDestinations = () => {
+    if (loading && userDestinations.length === 0) {
+      return <div className="text-center py-4">Loading your destinations...</div>;
+    }
+
+    if (error && userDestinations.length === 0) {
+      return <div className="text-center py-4 text-red-500">{error}</div>;
+    }
+
+    if (userDestinations.length === 0) {
+      return (
+        <div className="text-center py-8 text-gray-500">
+          {language === 'hi' 
+            ? 'आपने अभी तक कोई स्थान नहीं जोड़ा है'
+            : 'You haven\'t added any destinations yet'}
+        </div>
+      );
+    }
+
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {userDestinations.map((destination, index) => (
+          <motion.div 
+            key={destination.id} 
+            className="bg-white rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-all duration-300 transform hover:-translate-y-1 cursor-pointer"
+            onClick={() => navigate(`/destination/${destination.id}`)}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ 
+              duration: 0.4, 
+              delay: index * 0.1,
+              ease: "easeOut" 
+            }}
+            whileHover={{ 
+              scale: 1.03,
+              transition: { duration: 0.2 }
+            }}
+          >
+            <div className="relative h-48 overflow-hidden group">
+              <img 
+                src={destination.images?.[0] || destination.image} 
+                alt={destination.name} 
+                className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+              />
+              {(destination.likes || 0) > 100 && (
+                <div className="absolute top-4 right-4 bg-red-500 text-white px-3 py-1 rounded-full text-sm font-medium flex items-center space-x-1">
+                  <i className="fas fa-fire"></i>
+                  <span>{language === 'hi' ? 'ट्रेंडिंग' : 'Trending'}</span>
+                </div>
+              )}
+              
+              <div className="absolute top-2 right-2 flex space-x-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                <button
+                  onClick={(e) => handleEditClick(e, destination)}
+                  className="bg-white p-2 rounded-full shadow-md hover:bg-blue-50 transition-colors"
+                  aria-label="Edit"
+                >
+                  <i className="fas fa-edit text-blue-600"></i>
+                </button>
+                <button
+                  onClick={(e) => handleDeleteClick(e, destination)}
+                  className="bg-white p-2 rounded-full shadow-md hover:bg-red-50 transition-colors"
+                  aria-label="Delete"
+                >
+                  <i className="fas fa-trash-alt text-red-600"></i>
+                </button>
+              </div>
+            </div>
+            <div className="p-6">
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">{destination.name}</h3>
+              <p className="text-gray-600 mb-4 line-clamp-2 whitespace-pre-line">{destination.description}</p>
+              <div className="flex items-center gap-1 text-gray-700">
+                <i className="fas fa-star text-yellow-400"></i>
+                <span className="font-semibold">{(destination.averageRating || destination.rating || 0).toFixed(1)}</span>
+                <span className="text-gray-500">({getReviewCount(destination)} reviews)</span>
+              </div>
+            </div>
+          </motion.div>
+        ))}
+      </div>
+    );
+  };
+
+  const renderDeleteModal = () => {
+    if (!showDeleteModal) return null;
+    
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <motion.div 
+          className="bg-white rounded-lg shadow-xl p-6 max-w-md w-full"
+          initial={{ scale: 0.9, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ duration: 0.3 }}
+        >
+          <h3 className="text-xl font-bold mb-4">
+            {language === 'hi' ? 'स्थान हटाएं' : 'Delete Destination'}
+          </h3>
+          <p className="mb-6">
+            {language === 'hi' 
+              ? `क्या आप वाकई "${destinationToDelete?.name}" को हटाना चाहते हैं?`
+              : `Are you sure you want to delete "${destinationToDelete?.name}"?`}
+          </p>
+          <div className="flex justify-end space-x-4">
+            <button
+              onClick={() => setShowDeleteModal(false)}
+              className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
+            >
+              {language === 'hi' ? 'रद्द करें' : 'Cancel'}
+            </button>
+            <button
+              onClick={confirmDelete}
+              className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
+              disabled={loading}
+            >
+              {loading ? (
+                <span className="flex items-center">
+                  <i className="fas fa-spinner fa-spin mr-2"></i>
+                  {language === 'hi' ? 'हटा रहा है...' : 'Deleting...'}
+                </span>
+              ) : (
+                language === 'hi' ? 'हटाएं' : 'Delete'
+              )}
+            </button>
+          </div>
+        </motion.div>
+      </div>
+    );
+  };
+
+  const formTitle = editMode 
+    ? (language === 'hi' ? 'स्थान संपादित करें' : 'Edit Destination') 
+    : (language === 'hi' ? 'नया स्थान जोड़ें' : 'Add New Destination');
+
+  const renderCancelEditButton = () => {
+    if (!editMode) return null;
+    
+    return (
+      <button
+        type="button"
+        onClick={resetForm}
+        className="ml-4 text-blue-600 hover:text-blue-800"
+      >
+        {language === 'hi' ? 'संपादन रद्द करें' : 'Cancel Edit'}
+      </button>
+    );
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -223,13 +535,11 @@ const AddPlace = ({ language, setLanguage, languages }) => {
         setIsProfileOpen={setIsProfileOpen}
       />
       <div className="max-w-7xl mx-auto px-4 py-8 pt-20">
-        <div className="mb-8">
+        <div className="mb-8 flex items-center">
           <h1 className="text-3xl font-bold text-gray-900">
-            {language === 'hi' ? 'नया स्थान जोड़ें' : 'Add New Destination'}
+            {formTitle}
           </h1>
-          <p className="text-gray-600 mt-2">
-            {language === 'hi' ? 'समुदाय के साथ अपना यात्रा अनुभव साझा करें' : 'Share your travel experience with the community'}
-          </p>
+          {renderCancelEditButton()}
         </div>
 
         {error && (
@@ -297,10 +607,16 @@ const AddPlace = ({ language, setLanguage, languages }) => {
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              rows={4}
+              rows={6}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent"
+              placeholder="Describe this place in detail. Include what makes it special, best times to visit, etc."
               required
             />
+            <p className="mt-1 text-sm text-gray-500">
+              {language === 'hi' 
+                ? 'स्थान का विस्तृत विवरण दें। आप पंक्ति विराम (Enter) का उपयोग कर सकते हैं।'
+                : 'Provide a detailed description. You can use line breaks (Enter).'}
+            </p>
           </div>
 
           <div className="mb-6">
@@ -386,21 +702,86 @@ const AddPlace = ({ language, setLanguage, languages }) => {
             </div>
           </div>
 
-          <div className="mb-8">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Location *
-            </label>
-            <input
-              type="text"
-              value={location}
-              onChange={(e) => setLocation(e.target.value)}
-              placeholder="Enter the name of the place (e.g. Kumarakom, Kerala)"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent"
-              required
-            />
-            <p className="mt-1 text-sm text-gray-500">
-              Enter the name of the location, city, or region
-            </p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                {language === 'hi' ? 'देश' : 'Country'} *
+              </label>
+              <select
+                value={country}
+                onChange={(e) => {
+                  setCountry(e.target.value);
+                  setState('');
+                  setDistrict('');
+                }}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent"
+                required
+              >
+                <option value="">{language === 'hi' ? 'देश चुनें' : 'Select Country'}</option>
+                {getAllCountries().map(countryOption => (
+                  <option key={countryOption} value={countryOption}>{countryOption}</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                {language === 'hi' ? 'राज्य' : 'State'} *
+              </label>
+              {country === 'India' ? (
+                <select
+                  value={state}
+                  onChange={(e) => {
+                    setState(e.target.value);
+                    setDistrict('');
+                  }}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent"
+                  required
+                >
+                  <option value="">{language === 'hi' ? 'राज्य चुनें' : 'Select State'}</option>
+                  {getAllStates().map(stateOption => (
+                    <option key={stateOption} value={stateOption}>{stateOption}</option>
+                  ))}
+                </select>
+              ) : (
+                <input
+                  type="text"
+                  value={state}
+                  onChange={(e) => setState(e.target.value)}
+                  placeholder={language === 'hi' ? 'राज्य दर्ज करें' : 'Enter state/province'}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent"
+                  required
+                />
+              )}
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                {language === 'hi' ? 'जिला' : 'District'} *
+              </label>
+              {country === 'India' && state ? (
+                <select
+                  value={district}
+                  onChange={(e) => setDistrict(e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent"
+                  required
+                >
+                  <option value="">{language === 'hi' ? 'जिला चुनें' : 'Select District'}</option>
+                  {getDistrictsForState(state).map(districtOption => (
+                    <option key={districtOption} value={districtOption}>{districtOption}</option>
+                  ))}
+                </select>
+              ) : (
+                <input
+                  type="text"
+                  value={district}
+                  onChange={(e) => setDistrict(e.target.value)}
+                  placeholder={language === 'hi' ? 'जिला दर्ज करें' : 'Enter district/city'}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent"
+                  required
+                />
+              )}
+            </div>
           </div>
 
           <div className="flex justify-end gap-4">
@@ -427,13 +808,34 @@ const AddPlace = ({ language, setLanguage, languages }) => {
             </button>
           </div>
         </form>
-      </div>
 
-      {showSuccessMessage && (
-        <div className="fixed bottom-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg">
-          {language === 'hi' ? 'स्थान सफलतापूर्वक जोड़ा गया!' : 'Place added successfully!'}
-        </div>
-      )}
+        <motion.div 
+          className="mt-12"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.6 }}
+        >
+          <motion.h2 
+            className="text-2xl font-bold mb-6"
+            initial={{ y: -20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.2, duration: 0.5 }}
+          >
+            {language === 'hi' ? 'आपके द्वारा जोड़े गए स्थान' : 'Your Added Destinations'}
+          </motion.h2>
+          {renderUserDestinations()}
+        </motion.div>
+
+        {renderDeleteModal()}
+
+        {showSuccessMessage && (
+          <div className="fixed bottom-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg">
+            {editMode 
+              ? (language === 'hi' ? 'स्थान सफलतापूर्वक अपडेट किया गया!' : 'Destination updated successfully!') 
+              : (language === 'hi' ? 'स्थान सफलतापूर्वक जोड़ा गया!' : 'Destination added successfully!')}
+          </div>
+        )}
+      </div>
     </div>
   )
 }
@@ -444,4 +846,4 @@ AddPlace.propTypes = {
   languages: PropTypes.array.isRequired
 }
 
-export default AddPlace 
+export default AddPlace

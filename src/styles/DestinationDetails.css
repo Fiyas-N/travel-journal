@@ -183,6 +183,7 @@
 @media (max-width: 768px) {
   .destination-details {
     padding: 0 1rem;
+    margin: 1rem auto;
   }
 
   .main-image {
@@ -198,4 +199,54 @@
   .header h1 {
     font-size: 1.5rem;
   }
-} 
+  
+  .destination-info {
+    padding: 1.5rem 1rem;
+  }
+  
+  .thumbnail-strip {
+    gap: 0.5rem;
+  }
+  
+  .thumbnail-strip img {
+    width: 80px;
+    height: 80px;
+  }
+  
+  .tags {
+    justify-content: center;
+  }
+  
+  .comment-form textarea {
+    min-height: 80px;
+  }
+  
+  .comment {
+    padding: 0.75rem;
+  }
+}
+
+/* Small Mobile Devices */
+@media (max-width: 480px) {
+  .main-image {
+    height: 250px;
+  }
+  
+  .thumbnail-strip img {
+    width: 60px;
+    height: 60px;
+  }
+  
+  .header h1 {
+    font-size: 1.25rem;
+  }
+  
+  .tag {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.8rem;
+  }
+  
+  .rating {
+    font-size: 1rem;
+  }
+}

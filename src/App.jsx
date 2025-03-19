@@ -23,6 +23,9 @@ import ProtectedRoute from './components/ProtectedRoute'
 import Auth from './pages/Auth'
 import Explore from './pages/Explore'
 
+// Import the utility function if needed
+import { getReviewCount } from './utils/ratings'
+
 // Languages configuration
 const languages = [
   { code: 'en', name: 'English' },
@@ -98,23 +101,27 @@ const AnimatedRoutes = ({ user, language, setLanguage, languages }) => {
           <Route 
             path="/" 
             element={
-              <Home 
-                language={language} 
-                setLanguage={setLanguage} 
-                languages={languages} 
-                user={user}
-              />
+              <ProtectedRoute user={user}>
+                <Home 
+                  language={language} 
+                  setLanguage={setLanguage} 
+                  languages={languages} 
+                  user={user}
+                />
+              </ProtectedRoute>
             } 
           />
           <Route 
             path="/explore" 
             element={
-              <Explore 
-                language={language} 
-                setLanguage={setLanguage} 
-                languages={languages}
-                user={user}
-              />
+              <ProtectedRoute user={user}>
+                <Explore 
+                  language={language} 
+                  setLanguage={setLanguage} 
+                  languages={languages}
+                  user={user}
+                />
+              </ProtectedRoute>
             } 
           />
           <Route 
@@ -156,11 +163,14 @@ const AnimatedRoutes = ({ user, language, setLanguage, languages }) => {
           <Route 
             path="/destination/:id" 
             element={
-              <DestinationDetails 
-                language={language} 
-                setLanguage={setLanguage} 
-                languages={languages}
-              />
+              <ProtectedRoute user={user}>
+                <DestinationDetails 
+                  language={language} 
+                  setLanguage={setLanguage} 
+                  languages={languages}
+                  user={user}
+                />
+              </ProtectedRoute>
             } 
           />
           <Route 

@@ -4,7 +4,7 @@ import { Pagination, Autoplay } from 'swiper/modules'
 import PropTypes from 'prop-types'
 import { Link, useNavigate } from 'react-router-dom'
 import { db } from '../firebase/config'
-import { collection, query, orderBy, limit, getDocs, where, doc, getDoc } from 'firebase/firestore'
+import { collection, query, orderBy, limit, getDocs, where, doc, getDoc, setDoc } from 'firebase/firestore'
 import Navbar from '../components/Navbar'
 import 'swiper/css'
 import 'swiper/css/pagination'
@@ -12,6 +12,9 @@ import 'swiper/css/autoplay'
 import { motion } from 'framer-motion'
 import { Button } from '@mui/material'
 import ExploreIcon from '@mui/icons-material/Explore'
+import { getReviewCount } from '../utils/ratings'
+import DestinationCard from '../components/DestinationCard'
+import translations from '../utils/translations'
 
 const Home = ({ language, setLanguage, languages, user }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
@@ -21,7 +24,11 @@ const Home = ({ language, setLanguage, languages, user }) => {
   const [recommendedPlaces, setRecommendedPlaces] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [savedDestinations, setSavedDestinations] = useState([])
   const navigate = useNavigate()
+  
+  // Get translations for the current language
+  const t = translations[language] || translations.en
 
   useEffect(() => {
     const fetchPlaces = async () => {
@@ -62,8 +69,11 @@ const Home = ({ language, setLanguage, languages, user }) => {
             }
           } catch (err) {
             console.error('Error fetching user preferences:', err)
+            // If there's an error fetching user preferences, fall back to highest rated
+            recommendedPlaces = []
           }
         }
+        // For non-authenticated users, we'll show highest rated places below
 
         // If no recommended places based on preferences, show highest rated
         if (recommendedPlaces.length === 0) {
@@ -84,6 +94,58 @@ const Home = ({ language, setLanguage, languages, user }) => {
 
     fetchPlaces()
   }, [user])
+
+  // Fetch user's saved destinations
+  useEffect(() => {
+    const fetchSavedDestinations = async () => {
+      if (!user) {
+        setSavedDestinations([])
+        return
+      }
+      try {
+        const userDoc = await getDoc(doc(db, 'users', user.uid))
+        if (userDoc.exists()) {
+          setSavedDestinations(userDoc.data().savedDestinations || [])
+        }
+      } catch (err) {
+        console.error('Error fetching saved destinations:', err)
+      }
+    }
+
+    fetchSavedDestinations()
+  }, [user])
+
+  // Toggle bookmark for a destination
+  const toggleBookmark = async (placeId, e) => {
+    e.stopPropagation()
+    
+    if (!user) {
+      setShowLoginModal(true)
+      return
+    }
+
+    try {
+      const userRef = doc(db, 'users', user.uid)
+      const userDoc = await getDoc(userRef)
+      
+      if (!userDoc.exists()) {
+        await setDoc(userRef, { savedDestinations: [placeId] })
+        setSavedDestinations([placeId])
+        return
+      }
+      
+      const currentSaved = userDoc.data()?.savedDestinations || []
+      
+      const newSaved = currentSaved.includes(placeId)
+        ? currentSaved.filter(savedId => savedId !== placeId)
+        : [...currentSaved, placeId]
+
+      await setDoc(userRef, { savedDestinations: newSaved }, { merge: true })
+      setSavedDestinations(newSaved)
+    } catch (err) {
+      console.error('Error updating saved destinations:', err)
+    }
+  }
 
   if (loading) {
     return (
@@ -162,7 +224,7 @@ const Home = ({ language, setLanguage, languages, user }) => {
                     fontSize: '1.1rem',
                   }}
                 >
-                  {language === 'hi' ? 'खोज शुरू करें' : 'Start Exploring'}
+                  {t.exploreMore || 'Start Exploring'}
                 </Button>
               </motion.div>
             </motion.div>
@@ -171,46 +233,19 @@ const Home = ({ language, setLanguage, languages, user }) => {
       </div>
 
       {/* Trending Places Section - Mobile Optimized */}
-      <div className="max-w-7xl mx-auto px-4 py-8 sm:py-16">
-        <h2 className="text-2xl sm:text-3xl font-bold mb-6 sm:mb-8">
-          {language === 'hi' ? 'ट्रेंडिंग गंतव्य' : 'Trending Destinations'}
+      <div className="max-w-7xl mx-auto px-4 py-6 sm:py-16">
+        <h2 className="text-xl sm:text-2xl md:text-3xl font-bold mb-4 sm:mb-8">
+          {t.trendingDestinations || 'Trending Destinations'}
         </h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           {places.map(place => (
-            <div 
+            <DestinationCard 
               key={place.id} 
-              className="bg-white rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-all duration-300 transform hover:-translate-y-1 cursor-pointer"
-              onClick={() => navigate(`/destination/${place.id}`)}
-            >
-              <div className="relative h-48 overflow-hidden group">
-                <img 
-                  src={place.images?.[0] || place.image} 
-                  alt={place.name} 
-                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                />
-                {(place.likes || 0) > 100 && (
-                  <div className="absolute top-4 right-4 bg-red-500 text-white px-3 py-1 rounded-full text-sm font-medium flex items-center space-x-1">
-                    <i className="fas fa-fire"></i>
-                    <span>{language === 'hi' ? 'ट्रेंडिंग' : 'Trending'}</span>
-                  </div>
-                )}
-              </div>
-              <div className="p-6">
-                <h3 className="text-2xl font-semibold text-gray-900 mb-2">{place.name}</h3>
-                <p className="text-gray-600 mb-4 line-clamp-1">{place.description}</p>
-                <div className="flex items-center gap-1 text-gray-700">
-                  <i className="fas fa-star text-yellow-400"></i>
-                  <span className="font-semibold">{(place.averageRating || place.rating || 0).toFixed(1)}</span>
-                  <span className="text-gray-500">({place.reviews || 0} reviews)</span>
-                  <button 
-                    className="ml-auto text-gray-400 hover:text-gray-600"
-                    aria-label="Bookmark"
-                  >
-                    <i className="far fa-bookmark"></i>
-                  </button>
-                </div>
-              </div>
-            </div>
+              destination={place} 
+              language={language} 
+              onBookmarkToggle={toggleBookmark}
+              savedDestinations={savedDestinations}
+            />
           ))}
         </div>
       </div>
@@ -218,8 +253,15 @@ const Home = ({ language, setLanguage, languages, user }) => {
       {/* Recommended Places Section - Mobile Optimized */}
       <div className="py-8 sm:py-16 bg-gray-100">
         <div className="max-w-7xl mx-auto px-4">
-          <h2 className="text-2xl sm:text-3xl font-bold mb-6 sm:mb-8">
-            {language === 'hi' ? 'आपके लिए अनुशंसित' : 'Recommended for You'}
+          <h2 className="text-xl sm:text-2xl md:text-3xl font-bold mb-4 sm:mb-8">
+            {t.recommendedForYou || 'Recommended for You'}
+            {!user && (
+              <span className="ml-2 text-sm font-normal text-blue-600">
+                <Link to="/auth" className="hover:underline">
+                  {t.signIn || 'Sign in'}
+                </Link> {t.forMorePersonalizedRecommendations || 'for more personalized recommendations'}
+              </span>
+            )}
           </h2>
           <Swiper
             modules={[Pagination, Autoplay]}
@@ -241,39 +283,12 @@ const Home = ({ language, setLanguage, languages, user }) => {
           >
             {recommendedPlaces.map(place => (
               <SwiperSlide key={place.id}>
-                <div 
-                  className="bg-white rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-all duration-300 transform hover:-translate-y-1 h-full cursor-pointer"
-                  onClick={() => navigate(`/destination/${place.id}`)}
-                >
-                  <div className="relative h-48 overflow-hidden group">
-                    <img 
-                      src={place.images?.[0] || place.image} 
-                      alt={place.name} 
-                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                    />
-                    {(place.likes || 0) > 100 && (
-                      <div className="absolute top-4 right-4 bg-red-500 text-white px-3 py-1 rounded-full text-sm font-medium flex items-center space-x-1">
-                        <i className="fas fa-fire"></i>
-                        <span>{language === 'hi' ? 'ट्रेंडिंग' : 'Trending'}</span>
-                      </div>
-                    )}
-                  </div>
-                  <div className="p-6">
-                    <h3 className="text-2xl font-semibold text-gray-900 mb-2">{place.name}</h3>
-                    <p className="text-gray-600 mb-4 line-clamp-1">{place.description}</p>
-                    <div className="flex items-center gap-1 text-gray-700">
-                      <i className="fas fa-star text-yellow-400"></i>
-                      <span className="font-semibold">{(place.averageRating || place.rating || 0).toFixed(1)}</span>
-                      <span className="text-gray-500">({place.reviews || 0} reviews)</span>
-                      <button 
-                        className="ml-auto text-gray-400 hover:text-gray-600"
-                        aria-label="Bookmark"
-                      >
-                        <i className="far fa-bookmark"></i>
-                      </button>
-                    </div>
-                  </div>
-                </div>
+                <DestinationCard 
+                  destination={place} 
+                  language={language} 
+                  onBookmarkToggle={toggleBookmark}
+                  savedDestinations={savedDestinations}
+                />
               </SwiperSlide>
             ))}
           </Swiper>
@@ -283,7 +298,7 @@ const Home = ({ language, setLanguage, languages, user }) => {
       {/* Loading and Error States - Mobile Optimized */}
       {loading && (
         <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
-          <div className="text-xl sm:text-2xl text-gray-600 text-center">Loading...</div>
+          <div className="text-xl sm:text-2xl text-gray-600 text-center">{t.loading || 'Loading...'}</div>
         </div>
       )}
 
