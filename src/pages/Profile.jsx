@@ -7,6 +7,7 @@ import Navbar from '../components/Navbar'
 import { motion } from 'framer-motion'
 import { getReviewCount } from '../utils/ratings'
 import translations from '../utils/translations'
+import LoadingScreen from '../components/LoadingScreen'
 
 const Profile = ({ language, setLanguage, languages }) => {
   const navigate = useNavigate()
@@ -224,8 +225,11 @@ const Profile = ({ language, setLanguage, languages }) => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-2xl text-gray-600">Loading...</div>
+      <div className="min-h-screen bg-gray-50">
+        <LoadingScreen 
+          language={language} 
+          message={language === 'hi' ? 'प्रोफ़ाइल लोड हो रही है...' : 'Loading profile...'}
+        />
       </div>
     )
   }
@@ -385,6 +389,32 @@ const Profile = ({ language, setLanguage, languages }) => {
                   </button>
                 ))}
               </div>
+              
+              {/* Reset tooltips button */}
+              <div className="mt-4 flex justify-end">
+                <button
+                  onClick={() => {
+                    localStorage.removeItem('recommendationTooltipShown');
+                    // Show a brief confirmation message
+                    const message = document.createElement('div');
+                    message.className = 'fixed bottom-4 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg z-50';
+                    message.textContent = language === 'hi' 
+                      ? 'टूलटिप्स रीसेट किए गए' 
+                      : 'Tooltips have been reset';
+                    
+                    document.body.appendChild(message);
+                    setTimeout(() => {
+                      if (document.body.contains(message)) {
+                        message.remove();
+                      }
+                    }, 3000);
+                  }}
+                  className="text-sm text-blue-600 hover:text-blue-800 flex items-center"
+                >
+                  <i className="fas fa-sync-alt mr-1"></i>
+                  {language === 'hi' ? 'सभी सहायता टिप्स रीसेट करें' : 'Reset all help tooltips'}
+                </button>
+              </div>
             </div>
 
             {/* Bookmarked Destinations Section */}
@@ -395,7 +425,12 @@ const Profile = ({ language, setLanguage, languages }) => {
               
               {loadingBookmarks ? (
                 <div className="flex justify-center py-8">
-                  <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+                  <LoadingScreen 
+                    language={language} 
+                    type="inline" 
+                    size="small" 
+                    message={language === 'hi' ? 'बुकमार्क लोड हो रहे हैं...' : 'Loading bookmarks...'}
+                  />
                 </div>
               ) : bookmarkedDestinations.length > 0 ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">

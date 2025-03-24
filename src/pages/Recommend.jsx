@@ -690,7 +690,13 @@ const Recommend = ({ language, setLanguage, languages }) => {
   const tooltipShownRef = useRef(false);
   
   useEffect(() => {
-    if (!loading && places.length > 0 && selectedCategory === 'all') {
+    // Check if tooltip has already been shown (using localStorage)
+    const tooltipShown = localStorage.getItem('recommendationTooltipShown');
+    
+    if (!tooltipShown && !loading && places.length > 0 && selectedCategory === 'all') {
+      // Mark that we've shown the tooltip in localStorage
+      localStorage.setItem('recommendationTooltipShown', 'true');
+      
       // Create and show the tooltip
       const helpText = document.createElement('div');
       helpText.className = 'fixed top-24 left-1/2 transform -translate-x-1/2 bg-white border border-blue-200 text-blue-700 px-4 py-3 rounded-md shadow-lg z-50 max-w-md recommendation-tooltip';

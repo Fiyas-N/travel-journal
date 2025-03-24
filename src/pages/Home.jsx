@@ -40,9 +40,12 @@ const Home = ({ language, setLanguage, languages, user }) => {
   // Add effect to show tooltip explaining the recommendation system when the page loads
   useEffect(() => {
     // Only show the tooltip if the user is logged in and we have recommendations
-    if (user && recommendedPlaces.length > 0 && !tooltipShownRef.current) {
-      // Mark that we've shown the tooltip
-      tooltipShownRef.current = true;
+    // and it hasn't been shown before (checking localStorage)
+    const tooltipShown = localStorage.getItem('recommendationTooltipShown');
+    
+    if (user && recommendedPlaces.length > 0 && !tooltipShown) {
+      // Mark that we've shown the tooltip in localStorage so it persists across sessions
+      localStorage.setItem('recommendationTooltipShown', 'true');
       
       // Create and show the tooltip
       const helpText = document.createElement('div');
@@ -75,7 +78,7 @@ const Home = ({ language, setLanguage, languages, user }) => {
         }, 10000);
       }
     }
-  }, [user, recommendedPlaces.length, language]);
+  }, [recommendedPlaces.length, user, language]);
 
   useEffect(() => {
     const fetchPlaces = async () => {
