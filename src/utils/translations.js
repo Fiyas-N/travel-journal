@@ -5,6 +5,7 @@ const translations = {
     // Common UI Elements
     imageNotAvailable: 'Image not available',
     trending: 'Trending',
+    unnamedPlace: 'Unnamed Place',
     
     // Navbar
     home: 'Home',
@@ -129,6 +130,7 @@ const translations = {
     // Common UI Elements
     imageNotAvailable: 'ചിത്രം ലഭ്യമല്ല',
     trending: 'ട്രെൻഡിംഗ്',
+    unnamedPlace: 'പേരില്ലാത്ത സ്ഥലം',
     
     // Navbar
     home: 'ഹോം',
@@ -257,6 +259,7 @@ const translations = {
     // Common UI Elements
     imageNotAvailable: 'படம் கிடைக்கவில்லை',
     trending: 'டிரெண்டிங்',
+    unnamedPlace: 'பெயரிடப்படாத இடம்',
     
     // Navbar
     home: 'முகப்பு',
@@ -365,8 +368,8 @@ const translations = {
     pleaseTryAgain: 'அளிக்கும் மீண்டும் முயற்சிக்குக',
     noPlacesFound: 'தரவலில் எந்த இடம் இல்லை. சில இடங்கள் சேரிக்கவும்!',
     failedToLoadRecommendations: 'பரிந்துரைகள் லோட் செய்யாயி',
-    noPlacesFoundForSelectedCriteria: 'திரஞ்ஞெடுத்த பண்பிகளுக்கு எந்த இடம் இல்லை',
-    recommendationExplanation: 'நாங்கள் உங்கள் பிரிவுகள், புக்மார்க் மற்றும் அதேபோல் இடங்கள் அடிப்படையில் பரிந்துரைகள் தயாறாயிரிக்கின்றோம். நிறயுள்ள பிரிவு உங்கள் பிரிவுக்கு இடம், பந்துள்ள பிரிவு ஒன்றுப்படுத்தப்பட்ட இடம் மற்றும் மரபுள்ள பிரிவு புதிய கண்டெதிர் காட்டுகின்றோம்.',
+    noPlacesFoundForSelectedCriteria: 'திரஞ்ஞெடுத்த ப്ராமாணிகங்ஙൾக்கு எந்த இடம் இல்லை',
+    recommendationExplanation: 'நாங்கள் உங்கள் பிரிவுகள், புக்மார்க் மற்றும் இதேபோல் இடங்கள் அடிப்படையில் பரிந்துரைகள் தயாறாயிரிக்கின்றோம். நிறயுள்ள பிரிவு உங்கள் பிரிவுக்கு இடம், பந்துள்ள பிரிவு ஒன்றுப்படுத்தப்பட்ட இடம் மற்றும் மரபுள்ள பிரிவு புதிய கண்டெதிர் காட்டுகின்றோம்.',
     
     // Common
     loading: 'லோட் ஹோ ரஹாயின்...',
@@ -385,6 +388,7 @@ const translations = {
     // Common UI Elements
     imageNotAvailable: 'छवि उपलब्ध नहीं है',
     trending: 'ट्रेंडिंग',
+    unnamedPlace: 'अनाम स्थान',
     
     // Navbar
     home: 'होम',

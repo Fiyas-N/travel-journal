@@ -47,25 +47,47 @@ const Navbar = ({
     setIsSearching(true);
     try {
       const placesRef = collection(db, 'places');
-      const searchTerms = value.toLowerCase().split(' ');
+      const searchTerms = value.toLowerCase().split(' ').filter(term => term.trim() !== '');
       
-      // Get all places and filter in memory for better search
-      const snapshot = await getDocs(query(placesRef, orderBy('name'), limit(20)));
+      // Get more places from the database for better search results
+      const snapshot = await getDocs(query(placesRef, orderBy('name'), limit(50)));
+      
+      if (snapshot.empty) {
+        console.log('No places found in the database');
+        setSearchResults([]);
+        setShowSearchResults(true);
+        return;
+      }
+      
       const places = snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
       }));
 
-      // Filter places based on search terms
+      // Improved case-insensitive search on multiple fields
       const filtered = places.filter(place => {
-        const searchableText = `${place.name} ${place.location} ${place.description} ${place.category}`.toLowerCase();
+        // Create a combined text from all searchable fields, ensuring they exist
+        const name = (place.name || '').toLowerCase();
+        const location = (place.location || '').toLowerCase();
+        const description = (place.description || '').toLowerCase();
+        const category = (place.category || '').toLowerCase();
+        const district = (place.district || '').toLowerCase();
+        const state = (place.state || '').toLowerCase();
+        
+        const searchableText = `${name} ${location} ${description} ${category} ${district} ${state}`;
+        
+        // Check if all search terms are included in the searchable text
         return searchTerms.every(term => searchableText.includes(term));
       });
 
+      console.log(`Found ${filtered.length} search results for "${value}"`);
       setSearchResults(filtered.slice(0, 5));
       setShowSearchResults(true);
     } catch (error) {
       console.error('Error searching places:', error);
+      // Show an error message to the user or handle gracefully
+      setSearchResults([]);
+      setShowSearchResults(true);
     } finally {
       setIsSearching(false);
     }
@@ -171,19 +193,31 @@ const Navbar = ({
                       onClick={() => handleResultClick(place.id)}
                       className="w-full px-4 py-3 text-left hover:bg-gray-50 flex items-center space-x-3 border-b border-gray-100 last:border-b-0"
                     >
-                      <div className="w-12 h-12 rounded-lg overflow-hidden flex-shrink-0">
-                        <img
-                          src={place.images?.[0] || place.image}
-                          alt={place.name}
-                          className="w-full h-full object-cover"
-                        />
+                      <div className="w-12 h-12 rounded-lg overflow-hidden flex-shrink-0 bg-gray-100">
+                        {place.images?.[0] || place.image ? (
+                          <img
+                            src={place.images?.[0] || place.image}
+                            alt={place.name}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              e.target.onerror = null;
+                              e.target.src = 'https://via.placeholder.com/48?text=No+Image';
+                            }}
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <i className="fas fa-image text-gray-400"></i>
+                          </div>
+                        )}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-gray-900 truncate">{place.name}</p>
-                        <p className="text-xs text-gray-500 truncate">{place.location}</p>
+                        <p className="text-sm font-medium text-gray-900 truncate">{place.name || t.unnamedPlace || 'Unnamed Place'}</p>
+                        <p className="text-xs text-gray-500 truncate">
+                          {place.location || `${place.district ? place.district + ', ' : ''}${place.state || ''}`}
+                        </p>
                         <div className="flex items-center mt-1">
                           <i className="fas fa-star text-yellow-400 text-xs mr-1"></i>
-                          <span className="text-xs text-gray-600">{place.averageRating?.toFixed(1) || '0.0'}</span>
+                          <span className="text-xs text-gray-600">{place.averageRating?.toFixed(1) || place.rating?.toFixed(1) || '0.0'}</span>
                         </div>
                       </div>
                     </button>
@@ -192,8 +226,11 @@ const Navbar = ({
               )}
 
               {showSearchResults && searchQuery.trim().length >= 2 && searchResults.length === 0 && (
-                <div className="absolute mt-2 w-full bg-white rounded-lg shadow-lg border border-gray-200 p-4 text-center text-gray-500 text-sm">
-                  {t.noResultsFound}
+                <div className="absolute mt-2 w-full bg-white rounded-lg shadow-lg border border-gray-200 p-4 text-center text-sm">
+                  <p className="text-gray-500 mb-1">{t.noResultsFound}</p>
+                  <p className="text-gray-400 text-xs">
+                    {language === 'hi' ? 'कृपया अपनी खोज संशोधित करें या नए स्थान जोड़ें' : 'Try modifying your search or add new places'}
+                  </p>
                 </div>
               )}
             </div>
