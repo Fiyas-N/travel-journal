@@ -1,8 +1,9 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { auth, db } from '../firebase/config'
-import { createUserWithEmailAndPassword } from 'firebase/auth'
+import { auth, db, storage } from '../firebase/config'
+import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth'
 import { doc, setDoc } from 'firebase/firestore'
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage'
 import PropTypes from 'prop-types'
 
 const SignUp = ({ language }) => {
@@ -15,8 +16,11 @@ const SignUp = ({ language }) => {
     confirmPassword: '',
     preferences: []
   })
+  const [profileImage, setProfileImage] = useState(null)
+  const [previewURL, setPreviewURL] = useState(null)
   const [error, setError] = useState(null)
   const [loading, setLoading] = useState(false)
+  const fileInputRef = useRef(null)
   const navigate = useNavigate()
 
   const handleChange = (e) => {
@@ -37,13 +41,75 @@ const SignUp = ({ language }) => {
     }))
   }
 
+  const handleImageChange = (e) => {
+    const file = e.target.files[0]
+    if (file) {
+      setProfileImage(file)
+      // Create preview URL
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        setPreviewURL(reader.result)
+      }
+      reader.readAsDataURL(file)
+    }
+  }
+
+  const handleBrowseClick = () => {
+    fileInputRef.current.click()
+  }
+
+  const validateForm = () => {
+    // Check all required fields
+    if (!formData.name.trim()) {
+      setError('Name is required')
+      return false
+    }
+    
+    if (!formData.email.trim()) {
+      setError('Email is required')
+      return false
+    }
+    
+    if (!formData.phone.trim()) {
+      setError('Phone number is required')
+      return false
+    }
+    
+    if (!formData.location.trim()) {
+      setError('Location is required')
+      return false
+    }
+    
+    if (formData.preferences.length === 0) {
+      setError('Please select at least one travel preference')
+      return false
+    }
+    
+    if (!formData.password) {
+      setError('Password is required')
+      return false
+    }
+    
+    if (formData.password.length < 6) {
+      setError('Password must be at least 6 characters')
+      return false
+    }
+    
+    if (formData.password !== formData.confirmPassword) {
+      setError('Passwords do not match')
+      return false
+    }
+    
+    return true
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError(null)
     setLoading(true)
 
-    if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match')
+    // Validate the form
+    if (!validateForm()) {
       setLoading(false)
       return
     }
@@ -56,12 +122,27 @@ const SignUp = ({ language }) => {
         formData.password
       )
 
+      // Upload profile image if available
+      let profileImageUrl = null
+      if (profileImage) {
+        const storageRef = ref(storage, `profile-images/${userCredential.user.uid}`)
+        await uploadBytes(storageRef, profileImage)
+        profileImageUrl = await getDownloadURL(storageRef)
+        
+        // Update user profile with photo URL
+        await updateProfile(userCredential.user, {
+          displayName: formData.name,
+          photoURL: profileImageUrl
+        })
+      }
+
       // Store additional user data in Firestore
       await setDoc(doc(db, 'users', userCredential.user.uid), {
         name: formData.name,
         email: formData.email,
         phone: formData.phone,
         location: formData.location,
+        profileImageUrl: profileImageUrl || 'https://public.readdy.ai/ai/img_res/4c15f5e4c75bf1c2c613684d79bd37c4.jpg',
         preferences: formData.preferences,
         createdAt: new Date().toISOString()
       })
@@ -82,6 +163,39 @@ const SignUp = ({ language }) => {
         {error && <div className="error-message">{error}</div>}
         
         <form onSubmit={handleSubmit}>
+          <div className="form-group profile-image-upload">
+            <label>Profile Picture <span className="text-gray-500 text-xs font-normal">(Optional)</span></label>
+            <div className="profile-image-container">
+              {previewURL ? (
+                <img 
+                  src={previewURL} 
+                  alt="Profile preview" 
+                  className="profile-image-preview" 
+                />
+              ) : (
+                <div className="profile-image-placeholder">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-12 h-12">
+                    <path fillRule="evenodd" d="M7.5 6a4.5 4.5 0 119 0 4.5 4.5 0 01-9 0zM3.751 20.105a8.25 8.25 0 0116.498 0 .75.75 0 01-.437.695A18.683 18.683 0 0112 22.5c-2.786 0-5.433-.608-7.812-1.7a.75.75 0 01-.437-.695z" clipRule="evenodd" />
+                  </svg>
+                </div>
+              )}
+              <input
+                type="file"
+                accept="image/*"
+                ref={fileInputRef}
+                onChange={handleImageChange}
+                style={{ display: 'none' }}
+              />
+              <button 
+                type="button" 
+                onClick={handleBrowseClick}
+                className="upload-button"
+              >
+                Choose Photo
+              </button>
+            </div>
+          </div>
+
           <div className="form-group">
             <label htmlFor="name">Name</label>
             <input
@@ -145,6 +259,9 @@ const SignUp = ({ language }) => {
                 </label>
               ))}
             </div>
+            {formData.preferences.length === 0 && (
+              <small className="text-red-500">Please select at least one preference</small>
+            )}
           </div>
 
           <div className="form-group">
@@ -171,7 +288,7 @@ const SignUp = ({ language }) => {
             />
           </div>
 
-          <button type="submit" disabled={loading}>
+          <button type="submit" disabled={loading} className="signup-button">
             {loading ? 'Creating Account...' : 'Sign Up'}
           </button>
         </form>

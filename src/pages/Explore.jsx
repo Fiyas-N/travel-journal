@@ -5,15 +5,26 @@ import Navbar from '../components/Navbar';
 import { db, auth } from '../firebase/config';
 import { collection, getDocs, doc, getDoc, setDoc } from 'firebase/firestore';
 import DestinationCard from '../components/DestinationCard';
+import { motion, AnimatePresence } from 'framer-motion';
+import LoadingScreen from '../components/LoadingScreen';
+
+// Define filter animations near the top where other animations are defined
+const filterContainerVariants = {
+  hidden: { opacity: 0, y: -20 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.5 } },
+};
+
+const filterItemVariants = {
+  hidden: { opacity: 0, x: -10 },
+  visible: { opacity: 1, x: 0, transition: { duration: 0.3 } },
+};
 
 const Explore = ({ language, setLanguage, languages, user }) => {
   const navigate = useNavigate();
-  const [sortOrder, setSortOrder] = useState('asc');
-  const [sortBy, setSortBy] = useState('name');
-  const [ratingFilter, setRatingFilter] = useState(0);
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [isRatingDropdownOpen, setIsRatingDropdownOpen] = useState(false);
   const [showTrending, setShowTrending] = useState(false);
+  const [sortBy, setSortBy] = useState('rating');
+  const [sortOrder, setSortOrder] = useState('desc');
+  const [ratingFilter, setRatingFilter] = useState(0);
   const [searchTerm, setSearchTerm] = useState('');
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [savedDestinations, setSavedDestinations] = useState([]);
@@ -24,6 +35,9 @@ const Explore = ({ language, setLanguage, languages, user }) => {
   const [filteredDestinations, setFilteredDestinations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isRatingDropdownOpen, setIsRatingDropdownOpen] = useState(false);
+  const [showTrendingTooltip, setShowTrendingTooltip] = useState(false);
 
   // Redirect unauthenticated users trying to access protected features
   const checkAuth = () => {
@@ -106,7 +120,8 @@ const Explore = ({ language, setLanguage, languages, user }) => {
               return {
                 id: doc.id,
                 ...data,
-                trending: (data.likes || 0) > 100,
+                trending: false, // Will be determined based on bookmark count later
+                bookmarkCount: 0, // Initialize bookmark count for trending calculation
                 rating: data.averageRating || 0,
                 reviewCount: ratingCount,
                 name: data.name || 'Unnamed Destination',
@@ -114,6 +129,29 @@ const Explore = ({ language, setLanguage, languages, user }) => {
                 image: data.images?.[0] || data.image || 'https://via.placeholder.com/400x300?text=No+Image'
               };
             });
+
+            // Calculate bookmark counts for trending determination
+            try {
+              const usersSnapshot = await getDocs(collection(db, 'users'));
+              
+              // Count how many times each place is bookmarked
+              usersSnapshot.forEach(userDoc => {
+                const userData = userDoc.data();
+                const userSavedDestinations = userData.savedDestinations || [];
+                
+                // Increment bookmark count for each place this user has saved
+                userSavedDestinations.forEach(placeId => {
+                  const place = fetchedDestinations.find(p => p.id === placeId);
+                  if (place) {
+                    place.bookmarkCount = (place.bookmarkCount || 0) + 1;
+                  }
+                });
+              });
+              
+              console.log('Bookmark counts calculated for trending determination');
+            } catch (err) {
+              console.error('Error calculating bookmark counts:', err);
+            }
 
             console.log('Processed destinations:', fetchedDestinations.length);
             setDestinations(fetchedDestinations);
@@ -198,8 +236,27 @@ const Explore = ({ language, setLanguage, languages, user }) => {
         );
       }
 
+      // First, mark trending destinations based on bookmark counts (always do this)
+      // Mark top destinations as trending based on bookmark counts (matching Home page logic)
+      const trendingDestinations = [...filtered]
+        .sort((a, b) => (b.bookmarkCount || 0) - (a.bookmarkCount || 0))
+        .slice(0, 3);
+      
+      // Create a set of IDs for quick lookup
+      const topIds = new Set(trendingDestinations.map(d => d.id));
+      
+      // Update the trending property for all destinations
+      filtered = filtered.map(dest => ({
+        ...dest,
+        trending: topIds.has(dest.id)
+      }));
+
+      console.log('Top trending places by bookmarks:', trendingDestinations.map(d => d.name));
+      
+      // Then, if showTrending is true, filter to only show trending destinations
       if (showTrending) {
         filtered = filtered.filter(dest => dest.trending);
+        console.log('Filtered to show only trending destinations:', filtered.length);
       }
 
       if (ratingFilter > 0) {
@@ -217,6 +274,7 @@ const Explore = ({ language, setLanguage, languages, user }) => {
       });
 
       console.log('Filtered destinations:', filtered.length);
+      console.log('Trending destinations:', filtered.filter(d => d.trending).length);
       setFilteredDestinations(filtered);
     } catch (err) {
       console.error('Error filtering destinations:', err);
@@ -258,7 +316,7 @@ const Explore = ({ language, setLanguage, languages, user }) => {
       <main className="pt-20 pb-12 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
         {loading ? (
           <div className="flex items-center justify-center min-h-[60vh]">
-            <div className="text-2xl text-gray-600">Loading...</div>
+            <LoadingScreen language={language} type="inline" />
           </div>
         ) : error ? (
           <div className="flex flex-col items-center justify-center min-h-[60vh]">
@@ -299,7 +357,7 @@ const Explore = ({ language, setLanguage, languages, user }) => {
                         return {
                           id: doc.id,
                           ...data,
-                          trending: (data.likes || 0) > 100,
+                          trending: false, // Will be determined based on bookmark count later
                           rating: data.averageRating || 0,
                           reviewCount: ratingCount,
                           name: data.name || 'Unnamed Destination',
@@ -328,13 +386,18 @@ const Explore = ({ language, setLanguage, languages, user }) => {
           </div>
         ) : (
           <>
-            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl shadow-sm p-8 mb-8">
+            <motion.div 
+              className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl shadow-sm p-8 mb-8"
+              variants={filterContainerVariants}
+              initial="hidden"
+              animate="visible"
+            >
               <div className="flex flex-wrap gap-6 items-center justify-between">
                 <div className="flex items-center space-x-6">
-                  <div className="sort-dropdown relative">
+                  <motion.div className="sort-dropdown relative" variants={filterItemVariants}>
                     <button
                       onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                      className="px-6 py-3 !rounded-button bg-white shadow-sm hover:shadow-md transition-all duration-300 flex items-center space-x-2 border border-gray-100 cursor-pointer whitespace-nowrap"
+                      className="px-6 py-3 rounded-md bg-white shadow-sm hover:shadow-md transition-all duration-300 flex items-center space-x-2 border border-gray-100 cursor-pointer whitespace-nowrap"
                     >
                       <span className="text-gray-700 font-medium">
                         Sort by: {sortBy === 'name' ? 'Name' : 'Rating'} ({sortOrder === 'asc' ? 'Ascending' : 'Descending'})
@@ -361,7 +424,12 @@ const Explore = ({ language, setLanguage, languages, user }) => {
                               sortBy === option.value.by && sortOrder === option.value.order ? 'bg-blue-50' : ''
                             }`}
                           >
-                            <span>{option.label}</span>
+                            <span>{language === 'hi' ? 
+                              option.label === 'Name (A to Z)' ? 'नाम (A से Z)' : 
+                              option.label === 'Name (Z to A)' ? 'नाम (Z से A)' : 
+                              option.label === 'Rating (Low to High)' ? 'रेटिंग (कम से अधिक)' : 
+                              'रेटिंग (अधिक से कम)'
+                              : option.label}</span>
                             {sortBy === option.value.by && sortOrder === option.value.order && (
                               <i className="fas fa-check text-blue-600"></i>
                             )}
@@ -369,16 +437,16 @@ const Explore = ({ language, setLanguage, languages, user }) => {
                         ))}
                       </div>
                     )}
-                  </div>
+                  </motion.div>
 
-                  <div className="rating-dropdown relative">
+                  <motion.div className="rating-dropdown relative" variants={filterItemVariants}>
                     <button
                       onClick={() => setIsRatingDropdownOpen(!isRatingDropdownOpen)}
-                      className="px-6 py-3 !rounded-button bg-white shadow-sm hover:shadow-md transition-all duration-300 flex items-center space-x-2 border border-gray-100 cursor-pointer whitespace-nowrap"
+                      className="px-6 py-3 rounded-md bg-white shadow-sm hover:shadow-md transition-all duration-300 flex items-center space-x-2 border border-gray-100 cursor-pointer whitespace-nowrap"
                     >
                       <i className="fas fa-star text-yellow-400"></i>
                       <span className="text-gray-700 font-medium">
-                        {ratingFilter === 0 ? 'All Ratings' : `${ratingFilter}+ Stars`}
+                        {ratingFilter === 0 ? (language === 'hi' ? 'सभी रेटिंग' : 'All Ratings') : `${ratingFilter}+ ${language === 'hi' ? 'स्टार' : 'Stars'}`}
                       </span>
                       <i className={`fas fa-chevron-down text-gray-400 transition-transform duration-300 ${isRatingDropdownOpen ? 'transform rotate-180' : ''}`}></i>
                     </button>
@@ -396,28 +464,46 @@ const Explore = ({ language, setLanguage, languages, user }) => {
                               ratingFilter === rating ? 'bg-blue-50' : ''
                             }`}
                           >
-                            <span>{rating === 0 ? 'All Ratings' : `${rating}+ Stars`}</span>
+                            <span>{rating === 0 ? (language === 'hi' ? 'सभी रेटिंग' : 'All Ratings') : `${rating}+ ${language === 'hi' ? 'स्टार' : 'Stars'}`}</span>
                             {ratingFilter === rating && <i className="fas fa-check text-blue-600"></i>}
                           </div>
                         ))}
                       </div>
                     )}
-                  </div>
+                  </motion.div>
                 </div>
 
-                <button
-                  onClick={() => setShowTrending(!showTrending)}
-                  className={`px-6 py-3 !rounded-button transition-all duration-300 flex items-center space-x-2 cursor-pointer whitespace-nowrap ${
-                    showTrending
-                      ? 'bg-blue-600 text-white shadow-lg scale-105'
-                      : 'bg-white text-gray-700 hover:shadow-md border border-gray-100'
-                  }`}
-                >
-                  <i className={`fas fa-fire ${showTrending ? 'text-white' : 'text-orange-500'}`}></i>
-                  <span className="font-medium">{language === 'hi' ? 'ट्रेंडिंग स्थान' : 'Trending Places'}</span>
-                </button>
+                <motion.div className="relative">
+                  <motion.button
+                    variants={filterItemVariants}
+                    onClick={() => setShowTrending(!showTrending)}
+                    onMouseEnter={() => setShowTrendingTooltip(true)}
+                    onMouseLeave={() => setShowTrendingTooltip(false)}
+                    className={`px-6 py-3 rounded-md transition-all duration-300 flex items-center space-x-2 cursor-pointer whitespace-nowrap ${
+                      showTrending
+                        ? 'bg-blue-600 text-white shadow-lg scale-105'
+                        : 'bg-white text-gray-700 hover:shadow-md border border-gray-100'
+                    }`}
+                    aria-pressed={showTrending}
+                    aria-label={language === 'hi' ? 'ट्रेंडिंग स्थान फ़िल्टर' : 'Trending Places Filter'}
+                  >
+                    <i className={`fas fa-fire ${showTrending ? 'text-white' : 'text-orange-500'}`}></i>
+                    <span className="font-medium">{language === 'hi' ? 'ट्रेंडिंग स्थान' : 'Trending Places'}</span>
+                    {showTrending && (
+                      <i className="fas fa-check-circle ml-1 text-white text-sm"></i>
+                    )}
+                  </motion.button>
+                  
+                  {showTrendingTooltip && (
+                    <div className="absolute mt-2 w-64 bg-white rounded-lg shadow-lg border border-gray-100 py-2 px-3 z-50 text-sm right-0">
+                      {language === 'hi' 
+                        ? 'सबसे अधिक बुकमार्क किए गए शीर्ष 3 स्थान ट्रेंडिंग के रूप में दिखाए जाते हैं।' 
+                        : 'Showing the top 3 most bookmarked destinations as trending.'}
+                    </div>
+                  )}
+                </motion.div>
               </div>
-            </div>
+            </motion.div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
               {filteredDestinations.length === 0 ? (
@@ -429,7 +515,7 @@ const Explore = ({ language, setLanguage, languages, user }) => {
               ) : (
                 filteredDestinations.map((destination) => (
                   <DestinationCard 
-                    key={destination.id} 
+                    key={destination.id}
                     destination={destination} 
                     language={language} 
                     onBookmarkToggle={toggleSaveDestination}

@@ -8,6 +8,7 @@ import Map from '../components/Map'
 import Navbar from '../components/Navbar'
 import { getReviewCount } from '../utils/ratings'
 import translations from '../utils/translations'
+import LoadingScreen from '../components/LoadingScreen'
 
 const DestinationDetails = ({ language, setLanguage, languages, user }) => {
   const navigate = useNavigate()
@@ -29,6 +30,9 @@ const DestinationDetails = ({ language, setLanguage, languages, user }) => {
   const [showImageModal, setShowImageModal] = useState(false)
   const [selectedImageIndex, setSelectedImageIndex] = useState(0)
   const [imageLoadError, setImageLoadError] = useState({})
+  const [imageLoading, setImageLoading] = useState(false)
+  const [isFullscreen, setIsFullscreen] = useState(false)
+  const [showShortcutsInfo, setShowShortcutsInfo] = useState(false)
 
   // Get translations for the current language
   const t = translations[language] || translations.en
@@ -40,6 +44,98 @@ const DestinationDetails = ({ language, setLanguage, languages, user }) => {
       checkUserLike()
     }
   }, [id, user])
+
+  // Handle keyboard navigation for image modal
+  useEffect(() => {
+    if (!showImageModal) return;
+    
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        // Don't manually close modal on ESC if in fullscreen mode
+        // The fullscreen exit will be handled by the browser, and our fullscreen change listener
+        if (!isFullscreen) {
+          setShowImageModal(false);
+        }
+      } else if (e.key === 'ArrowRight' && place?.images?.length > 1) {
+        const nextIndex = selectedImageIndex === place.images.length - 1 ? 0 : selectedImageIndex + 1;
+        changeModalImage(nextIndex);
+      } else if (e.key === 'ArrowLeft' && place?.images?.length > 1) {
+        const prevIndex = selectedImageIndex === 0 ? place.images.length - 1 : selectedImageIndex - 1;
+        changeModalImage(prevIndex);
+      } else if (e.key === 'f' || e.key === 'F') {
+        // Toggle fullscreen with F key
+        toggleFullscreen();
+      }
+    };
+    
+    // Handle mouse wheel for image navigation
+    const handleWheel = (e) => {
+      if (place?.images?.length <= 1) return;
+      
+      // Prevent default to avoid page scrolling
+      e.preventDefault();
+      
+      if (e.deltaY > 0 || e.deltaX > 0) {
+        // Scroll down or right - next image
+        const nextIndex = selectedImageIndex === place.images.length - 1 ? 0 : selectedImageIndex + 1;
+        changeModalImage(nextIndex);
+      } else if (e.deltaY < 0 || e.deltaX < 0) {
+        // Scroll up or left - previous image
+        const prevIndex = selectedImageIndex === 0 ? place.images.length - 1 : selectedImageIndex - 1;
+        changeModalImage(prevIndex);
+      }
+    };
+    
+    // Handle touch events for swipe gestures
+    let touchStartX = 0;
+    let touchStartY = 0;
+    
+    const handleTouchStart = (e) => {
+      touchStartX = e.touches[0].clientX;
+      touchStartY = e.touches[0].clientY;
+    };
+    
+    const handleTouchEnd = (e) => {
+      if (place?.images?.length <= 1) return;
+      
+      const touchEndX = e.changedTouches[0].clientX;
+      const touchEndY = e.changedTouches[0].clientY;
+      
+      const diffX = touchStartX - touchEndX;
+      const diffY = touchStartY - touchEndY;
+      
+      // Only handle horizontal swipes that are significant enough (> 50px)
+      if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 50) {
+        if (diffX > 0) {
+          // Swipe left - next image
+          const nextIndex = selectedImageIndex === place.images.length - 1 ? 0 : selectedImageIndex + 1;
+          changeModalImage(nextIndex);
+        } else {
+          // Swipe right - previous image
+          const prevIndex = selectedImageIndex === 0 ? place.images.length - 1 : selectedImageIndex - 1;
+          changeModalImage(prevIndex);
+        }
+      }
+    };
+    
+    const modalElement = document.getElementById('imageModalContainer');
+    if (modalElement) {
+      modalElement.addEventListener('wheel', handleWheel, { passive: false });
+      modalElement.addEventListener('touchstart', handleTouchStart, { passive: true });
+      modalElement.addEventListener('touchend', handleTouchEnd, { passive: true });
+    }
+    
+    window.addEventListener('keydown', handleKeyDown);
+    
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      if (modalElement) {
+        modalElement.removeEventListener('wheel', handleWheel);
+        modalElement.removeEventListener('touchstart', handleTouchStart);
+        modalElement.removeEventListener('touchend', handleTouchEnd);
+      }
+    };
+  }, [showImageModal, place?.images?.length, selectedImageIndex, isFullscreen]);
 
   // Redirect unauthorized users to login page
   useEffect(() => {
@@ -99,6 +195,98 @@ const DestinationDetails = ({ language, setLanguage, languages, user }) => {
   const handleImageChange = (index) => {
     setActiveImage(index)
   }
+
+  // Updated function to open image modal
+  const openImageModal = (index) => {
+    setSelectedImageIndex(index);
+    setImageLoading(true);
+    setShowImageModal(true);
+    setShowShortcutsInfo(true);
+    
+    // Hide the shortcuts info after 5 seconds
+    setTimeout(() => {
+      setShowShortcutsInfo(false);
+    }, 5000);
+  }
+  
+  // Updated function to change images in the modal
+  const changeModalImage = (index) => {
+    setImageLoading(true);
+    setSelectedImageIndex(index);
+  }
+
+  // Handle fullscreen mode
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement && 
+        !document.mozFullScreenElement && 
+        !document.webkitFullscreenElement && 
+        !document.msFullscreenElement) {
+      // Enter fullscreen mode
+      const modalElement = document.getElementById('imageModalContainer');
+      if (modalElement) {
+        if (modalElement.requestFullscreen) {
+          modalElement.requestFullscreen();
+        } else if (modalElement.msRequestFullscreen) {
+          modalElement.msRequestFullscreen();
+        } else if (modalElement.mozRequestFullScreen) {
+          modalElement.mozRequestFullScreen();
+        } else if (modalElement.webkitRequestFullscreen) {
+          modalElement.webkitRequestFullscreen();
+        }
+        setIsFullscreen(true);
+      }
+    } else {
+      // Exit fullscreen mode
+      if (document.exitFullscreen) {
+        document.exitFullscreen();
+      } else if (document.msExitFullscreen) {
+        document.msExitFullscreen();
+      } else if (document.mozCancelFullScreen) {
+        document.mozCancelFullScreen();
+      } else if (document.webkitExitFullscreen) {
+        document.webkitExitFullscreen();
+      }
+      setIsFullscreen(false);
+    }
+  }
+
+  // Listen to fullscreen changes from outside our button (like Escape key)
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(
+        !!(document.fullscreenElement || 
+          document.mozFullScreenElement || 
+          document.webkitFullscreenElement || 
+          document.msFullscreenElement)
+      );
+    };
+
+    // Add the animation style for fade-out
+    const style = document.createElement('style');
+    style.textContent = `
+      @keyframes fadeOut {
+        0%, 20% { opacity: 1; }
+        90%, 100% { opacity: 0; }
+      }
+      .animate-fade-out {
+        animation: fadeOut 5s forwards;
+      }
+    `;
+    document.head.appendChild(style);
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+    document.addEventListener('mozfullscreenchange', handleFullscreenChange);
+    document.addEventListener('MSFullscreenChange', handleFullscreenChange);
+
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
+      document.removeEventListener('mozfullscreenchange', handleFullscreenChange);
+      document.removeEventListener('MSFullscreenChange', handleFullscreenChange);
+      document.head.removeChild(style);
+    };
+  }, []);
 
   const handleCommentSubmit = async (e) => {
     e.preventDefault()
@@ -273,8 +461,14 @@ const DestinationDetails = ({ language, setLanguage, languages, user }) => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-2xl text-gray-600">{t.loading}</div>
+      <div className="min-h-screen bg-gray-50">
+        <Navbar 
+          language={language}
+          setLanguage={setLanguage}
+          languages={languages}
+          user={user}
+        />
+        <LoadingScreen language={language} />
       </div>
     )
   }
@@ -479,10 +673,7 @@ const DestinationDetails = ({ language, setLanguage, languages, user }) => {
                       <div 
                         key={index}
                         className="relative aspect-square rounded-lg overflow-hidden cursor-pointer hover:opacity-90 transition-opacity"
-                        onClick={() => {
-                          setSelectedImageIndex(index)
-                          setShowImageModal(true)
-                        }}
+                        onClick={() => openImageModal(index)}
                       >
                         <img
                           src={image}
@@ -502,10 +693,7 @@ const DestinationDetails = ({ language, setLanguage, languages, user }) => {
                   </div>
                   {place.images.length > 4 && (
                     <button
-                      onClick={() => {
-                        setSelectedImageIndex(0)
-                        setShowImageModal(true)
-                      }}
+                      onClick={() => openImageModal(0)}
                       className="w-full mt-4 text-blue-600 hover:text-blue-700 text-sm"
                     >
                       {t.viewAll ? `${t.viewAll} ${place.images.length - 4} ${t.more || 'more photos'}` : `View ${place.images.length - 4} more photos`}
@@ -527,56 +715,167 @@ const DestinationDetails = ({ language, setLanguage, languages, user }) => {
 
       {/* Image Modal/Lightbox */}
       {showImageModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center p-4">
-          <div className="relative w-full max-w-6xl mx-auto">
-            <button
-              onClick={() => setShowImageModal(false)}
-              className="absolute top-4 right-4 text-white hover:text-gray-300 z-10"
-            >
-              <i className="fas fa-times text-2xl"></i>
-            </button>
+        <div className="fixed inset-0 bg-black bg-opacity-95 z-50 flex items-center justify-center p-4" id="imageModalContainer">
+          <div className={`relative w-full max-w-6xl mx-auto h-full max-h-[90vh] flex flex-col ${isFullscreen ? 'max-w-none max-h-none' : ''}`}>
+            {/* Header with controls and image counter - improved styling */}
+            <div className="flex justify-between items-center py-3 px-4 text-white mb-3 bg-black bg-opacity-50 backdrop-blur-sm rounded-t-lg">
+              <div className="flex items-center">
+                <i className="fas fa-images mr-2 text-blue-300"></i>
+                <div className="text-sm md:text-base font-medium">
+                  <span className="bg-blue-900 bg-opacity-70 px-2 py-1 rounded">
+                    {selectedImageIndex + 1} / {place.images.length}
+                  </span>
+                </div>
+              </div>
+              <div className="flex items-center space-x-3">
+                {/* Fullscreen toggle button */}
+                <button
+                  onClick={toggleFullscreen}
+                  className="text-white hover:text-blue-400 z-10 px-3 py-2 transition-all bg-black bg-opacity-70 hover:bg-opacity-90 rounded-lg flex items-center justify-center border border-white border-opacity-30"
+                  aria-label={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
+                  title={isFullscreen ? "Exit fullscreen (F)" : "Enter fullscreen (F)"}
+                >
+                  <i className={`fas ${isFullscreen ? 'fa-compress' : 'fa-expand'} mr-1.5`}></i>
+                  <span className="text-sm hidden sm:inline">{isFullscreen ? (language === 'hi' ? 'पूर्ण स्क्रीन से बाहर निकलें' : 'Exit Fullscreen') : (language === 'hi' ? 'पूर्ण स्क्रीन' : 'Fullscreen')}</span>
+                </button>
+                {/* Close button */}
+                <button
+                  onClick={() => setShowImageModal(false)}
+                  className="text-white hover:text-red-400 z-10 px-3 py-2 transition-all bg-black bg-opacity-70 hover:bg-opacity-90 rounded-lg flex items-center justify-center border border-white border-opacity-30"
+                  aria-label="Close image viewer"
+                  title="Close (ESC)"
+                >
+                  <i className="fas fa-times mr-1.5"></i>
+                  <span className="text-sm hidden sm:inline">{language === 'hi' ? 'बंद करें' : 'Close'}</span>
+                </button>
+              </div>
+            </div>
             
-            <div className="relative aspect-video">
+            {/* Main image container with improved design */}
+            <div className={`relative flex-1 overflow-hidden flex items-center justify-center ${isFullscreen ? 'h-screen' : ''}`}>
+              {imageLoading && (
+                <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 z-10">
+                  <LoadingScreen language={language} type="overlay" size="small" message={language === 'hi' ? 'छवि लोड हो रही है...' : 'Loading image...'} />
+                </div>
+              )}
               <img
                 src={place.images[selectedImageIndex]}
                 alt={`${place.name} - Image ${selectedImageIndex + 1}`}
-                className="w-full h-full object-contain"
+                className={`max-w-full max-h-full object-contain transition-transform duration-200 ${isFullscreen ? 'scale-[0.98]' : ''}`}
+                onLoad={() => setImageLoading(false)}
+                onError={(e) => {
+                  setImageLoading(false);
+                  setImageLoadError(prev => ({ ...prev, [selectedImageIndex]: true }));
+                  e.target.src = 'https://via.placeholder.com/800x600?text=Image+Not+Available';
+                }}
               />
+              {imageLoadError[selectedImageIndex] && (
+                <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 z-10">
+                  <div className="text-white text-center p-4">
+                    <i className="fas fa-exclamation-circle text-4xl mb-2"></i>
+                    <p>{language === 'hi' ? 'छवि लोड करने में समस्या हुई' : 'Error loading image'}</p>
+                  </div>
+                </div>
+              )}
+              
+              {/* Keyboard shortcuts info (only shown briefly on open) */}
+              {showShortcutsInfo && (
+                <div className="absolute bottom-20 left-1/2 transform -translate-x-1/2 bg-black bg-opacity-70 text-white text-xs md:text-sm px-4 py-3 rounded-lg pointer-events-none transition-opacity duration-300">
+                  <div className="text-center mb-2">
+                    <span className="font-medium">{language === 'hi' ? 'कीबोर्ड शॉर्टकट' : 'Keyboard Shortcuts'}</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+                    <div className="flex items-center">
+                      <span className="bg-white bg-opacity-20 rounded px-1.5 py-0.5 mr-2">←</span>
+                      <span>{language === 'hi' ? 'पिछला चित्र' : 'Previous image'}</span>
+                    </div>
+                    <div className="flex items-center">
+                      <span className="bg-white bg-opacity-20 rounded px-1.5 py-0.5 mr-2">→</span>
+                      <span>{language === 'hi' ? 'अगला चित्र' : 'Next image'}</span>
+                    </div>
+                    <div className="flex items-center">
+                      <span className="bg-white bg-opacity-20 rounded px-1.5 py-0.5 mr-2">F</span>
+                      <span>{language === 'hi' ? 'फुलस्क्रीन टॉगल' : 'Toggle fullscreen'}</span>
+                    </div>
+                    <div className="flex items-center">
+                      <span className="bg-white bg-opacity-20 rounded px-1.5 py-0.5 mr-2">ESC</span>
+                      <span>{language === 'hi' ? 'बंद करें' : 'Close viewer'}</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              {/* Navigation arrows with improved design */}
+              {place.images.length > 1 && (
+                <>
+                  <button
+                    onClick={() => {
+                      const prevIndex = selectedImageIndex === 0 ? place.images.length - 1 : selectedImageIndex - 1;
+                      changeModalImage(prevIndex);
+                    }}
+                    className="absolute left-2 md:left-4 p-3 md:p-4 rounded-full bg-black bg-opacity-70 hover:bg-opacity-90 text-white transition-all transform hover:scale-110 border border-white border-opacity-30"
+                    aria-label="Previous image"
+                    title="Previous image (Left arrow)"
+                  >
+                    <i className="fas fa-chevron-left text-xl md:text-2xl"></i>
+                  </button>
+                  <button
+                    onClick={() => {
+                      const nextIndex = selectedImageIndex === place.images.length - 1 ? 0 : selectedImageIndex + 1;
+                      changeModalImage(nextIndex);
+                    }}
+                    className="absolute right-2 md:right-4 p-3 md:p-4 rounded-full bg-black bg-opacity-70 hover:bg-opacity-90 text-white transition-all transform hover:scale-110 border border-white border-opacity-30"
+                    aria-label="Next image"
+                    title="Next image (Right arrow)"
+                  >
+                    <i className="fas fa-chevron-right text-xl md:text-2xl"></i>
+                  </button>
+                </>
+              )}
             </div>
             
-            {place.images.length > 1 && (
-              <div className="absolute inset-x-0 bottom-4 flex justify-center gap-2">
-                {place.images.map((_, index) => (
-                  <button
-                    key={index}
-                    onClick={() => setSelectedImageIndex(index)}
-                    className={`w-2 h-2 rounded-full ${
-                      index === selectedImageIndex ? 'bg-white' : 'bg-gray-400'
-                    }`}
-                  />
-                ))}
+            {/* Thumbnail strip - hidden in fullscreen mode */}
+            {place.images.length > 1 && !isFullscreen && (
+              <div className="pt-4 px-4 flex justify-center">
+                <div className="flex overflow-x-auto gap-2 pb-2 max-w-full">
+                  {place.images.map((image, index) => (
+                    <button
+                      key={index}
+                      onClick={() => changeModalImage(index)}
+                      className={`flex-shrink-0 w-16 h-16 rounded-md overflow-hidden transition-all ${
+                        index === selectedImageIndex 
+                          ? 'border-2 border-blue-500 opacity-100 scale-105' 
+                          : 'border border-gray-600 opacity-60 hover:opacity-90'
+                      }`}
+                      aria-label={`View image ${index + 1}`}
+                    >
+                      <img 
+                        src={image} 
+                        alt={`Thumbnail ${index + 1}`}
+                        className="w-full h-full object-cover"
+                      />
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
             
-            {place.images.length > 1 && (
-              <>
-                <button
-                  onClick={() => setSelectedImageIndex(prev => 
-                    prev === 0 ? place.images.length - 1 : prev - 1
-                  )}
-                  className="absolute left-4 top-1/2 -translate-y-1/2 text-white hover:text-gray-300"
-                >
-                  <i className="fas fa-chevron-left text-2xl"></i>
-                </button>
-                <button
-                  onClick={() => setSelectedImageIndex(prev => 
-                    prev === place.images.length - 1 ? 0 : prev + 1
-                  )}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-white hover:text-gray-300"
-                >
-                  <i className="fas fa-chevron-right text-2xl"></i>
-                </button>
-              </>
+            {/* Mobile-friendly dot indicators - hidden in fullscreen mode */}
+            {place.images.length > 1 && !isFullscreen && (
+              <div className="md:hidden pt-2 pb-4 flex justify-center">
+                <div className="flex gap-2">
+                  {place.images.map((_, index) => (
+                    <button
+                      key={index}
+                      onClick={() => changeModalImage(index)}
+                      className={`w-2.5 h-2.5 rounded-full transition-all ${
+                        index === selectedImageIndex ? 'bg-blue-500 scale-110' : 'bg-gray-400'
+                      }`}
+                      aria-label={`Go to image ${index + 1}`}
+                    />
+                  ))}
+                </div>
+              </div>
             )}
           </div>
         </div>

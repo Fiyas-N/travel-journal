@@ -8,6 +8,7 @@ import { getReviewCount } from '../utils/ratings'
 import { motion } from 'framer-motion'
 import { getAllCountries } from '../utils/countries'
 import { getAllStates, getDistrictsForState } from '../utils/indiaLocations'
+import LoadingScreen from '../components/LoadingScreen'
 
 const AddPlace = ({ language, setLanguage, languages }) => {
   const navigate = useNavigate()
@@ -318,6 +319,7 @@ const AddPlace = ({ language, setLanguage, languages }) => {
         country: country.trim(),
         images: images,
         userId: auth.currentUser.uid,
+        addedBy: auth.currentUser.uid,
         updatedAt: new Date().toISOString()
       };
       
@@ -376,7 +378,11 @@ const AddPlace = ({ language, setLanguage, languages }) => {
 
   const renderUserDestinations = () => {
     if (loading && userDestinations.length === 0) {
-      return <div className="text-center py-4">Loading your destinations...</div>;
+      return (
+        <div className="flex justify-center py-8">
+          <LoadingScreen language={language} type="inline" size="small" message={language === 'hi' ? 'आपके स्थान लोड हो रहे हैं...' : 'Loading your destinations...'} />
+        </div>
+      );
     }
 
     if (error && userDestinations.length === 0) {
@@ -523,6 +529,15 @@ const AddPlace = ({ language, setLanguage, languages }) => {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {loading && (
+        <LoadingScreen 
+          language={language}
+          type="overlay"
+          message={editMode 
+            ? (language === 'hi' ? 'स्थान अपडेट हो रहा है...' : 'Updating place...') 
+            : (language === 'hi' ? 'स्थान जोड़ा जा रहा है...' : 'Adding place...')}
+        />
+      )}
       <Navbar 
         language={language}
         setLanguage={setLanguage}

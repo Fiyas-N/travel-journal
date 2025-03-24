@@ -45,9 +45,9 @@ const DestinationCard = ({ destination, language, onBookmarkToggle, savedDestina
             </div>
           </div>
         )}
-        {(destination.likes || 0) > 100 && (
-          <div className="absolute top-4 right-4 bg-red-500 text-white px-3 py-1 rounded-full text-sm font-medium flex items-center space-x-1">
-            <i className="fas fa-fire"></i>
+        {destination.trending && (
+          <div className="absolute top-3 right-3 z-10 bg-gradient-to-r from-orange-500 to-pink-500 bg-opacity-85 text-white text-[9px] py-0.5 px-1.5 rounded-sm shadow-sm flex items-center">
+            <i className="fas fa-fire mr-1 text-[8px]"></i>
             <span>{t.trending || 'Trending'}</span>
           </div>
         )}
