@@ -384,176 +384,230 @@ const Home = ({ language, setLanguage, languages, user }) => {
   }
 
   if (loading) {
-    return <LoadingScreen language={language} />;
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Navbar 
+          language={language}
+          setLanguage={setLanguage}
+          languages={languages}
+          user={user}
+          setShowLoginModal={setShowLoginModal}
+          isMenuOpen={isMenuOpen}
+          setIsMenuOpen={setIsMenuOpen}
+          isProfileOpen={isProfileOpen}
+          setIsProfileOpen={setIsProfileOpen}
+        />
+        <LoadingScreen language={language} type="fullpage" />
+      </div>
+    )
   }
 
-  // Title component for section headers with consistent styling
-  const SectionTitle = ({ children, withViewAll, link }) => (
-    <div className="flex items-center justify-between mb-4 sm:mb-6">
-      <h2 className="text-xl sm:text-2xl font-bold text-gray-900">{children}</h2>
-      {withViewAll && (
-        <Link to={link} className="text-xs sm:text-sm text-blue-600 hover:text-blue-800 flex items-center">
-          {t.viewAll} <i className="fas fa-arrow-right ml-1 text-xs"></i>
-        </Link>
-      )}
-    </div>
-  );
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-xl text-red-600">{error}</div>
+      </div>
+    )
+  }
 
   return (
-    <div className="bg-gray-50 min-h-screen pb-20">
-      <Navbar
+    <div className="min-h-screen bg-gray-50">
+      <Navbar 
         language={language}
         setLanguage={setLanguage}
         languages={languages}
         user={user}
+        setShowLoginModal={setShowLoginModal}
         isMenuOpen={isMenuOpen}
         setIsMenuOpen={setIsMenuOpen}
         isProfileOpen={isProfileOpen}
         setIsProfileOpen={setIsProfileOpen}
-        setShowLoginModal={setShowLoginModal}
       />
 
-      <main className="pt-16 sm:pt-20">
-        {/* Hero Section */}
-        <section className="relative bg-blue-700 text-white">
-          <div className="absolute inset-0 opacity-20 bg-pattern"></div>
-          <div className="relative responsive-container py-8 sm:py-12 md:py-16">
-            <div className="max-w-xl">
-              <h1 className="text-responsive-xl font-bold mb-3 sm:mb-4">
-                {language === 'hi' ? 'अपनी यात्रा का अनुभव साझा करें' : language === 'ml' ? 'നിങ്ങളുടെ യാത്രാനുഭവങ്ങൾ പങ്കിടുക' : 'Share Your Travel Experience'}
+      <div className="pt-16">
+        {/* Hero Section - Mobile Optimized */}
+        <motion.div 
+          className="relative h-[400px] sm:h-[600px] bg-blue-600 bg-cover bg-center" 
+          style={{
+            backgroundImage: `url('https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80')`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center'
+          }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.8 }}
+        >
+          <div className="absolute inset-0 bg-black bg-opacity-40"></div>
+          <div className="relative max-w-7xl mx-auto px-4 h-full flex items-center">
+            <motion.div 
+              className="text-white max-w-xl"
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.3, duration: 0.6 }}
+            >
+              <h1 className="text-3xl sm:text-5xl font-bold mb-4 sm:mb-6">
+                {language === 'hi' ? 'अपनी अगली यात्रा की खोज करें' : 'Discover Your Next Adventure'}
               </h1>
-              <p className="text-responsive-base mb-6 sm:mb-8 text-blue-100">
+              <p className="text-base sm:text-xl mb-8">
                 {language === 'hi' 
-                  ? 'अपने यात्रा अनुभवों को दर्ज करें, अद्भुत स्थलों का पता लगाएँ, और दुनिया भर के यात्रियों से जुड़ें।'
-                  : language === 'ml'
-                  ? 'നിങ്ങളുടെ യാത്രാനുഭവങ്ങൾ രേഖപ്പെടുത്തുക, മനോഹരമായ സ്ഥലങ്ങൾ കണ്ടെത്തുക, ലോകമെമ്പാടുമുള്ള സഞ്ചാരികളുമായി ബന്ധപ്പെടുക.'
-                  : 'Document your travel experiences, discover amazing places, and connect with travelers from around the world.'}
+                  ? 'दुनिया के सबसे खूबसूरत स्थलों की खोज करें और यादगार पल बनाएं।' 
+                  : 'Explore the world\'s most beautiful destinations and create unforgettable memories.'}
               </p>
-              <div className="flex flex-wrap gap-3 sm:gap-4">
-                <Link 
-                  to="/explore" 
-                  className="bg-white text-blue-700 hover:bg-blue-50 px-4 sm:px-6 py-2 sm:py-3 rounded-lg font-medium text-sm sm:text-base shadow-sm transition-colors duration-200 flex items-center"
+              <motion.div
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                <Button
+                  variant="contained"
+                  size="large"
+                  startIcon={<ExploreIcon />}
+                  onClick={() => navigate('/explore')}
+                  sx={{
+                    backgroundColor: 'white',
+                    color: '#2563EB',
+                    '&:hover': {
+                      backgroundColor: '#f8fafc',
+                    },
+                    px: 4,
+                    py: 1.5,
+                    fontSize: '1.1rem',
+                  }}
                 >
-                  <ExploreIcon className="mr-2" fontSize="small" />
-                  {t.exploreMore}
-                </Link>
-                <Link 
-                  to="/add-place" 
-                  className="bg-blue-600 text-white hover:bg-blue-500 px-4 sm:px-6 py-2 sm:py-3 rounded-lg font-medium text-sm sm:text-base shadow-sm transition-colors duration-200"
-                >
-                  {t.addPlace}
-                </Link>
-              </div>
-            </div>
+                  {t.exploreMore || 'Start Exploring'}
+                </Button>
+              </motion.div>
+            </motion.div>
           </div>
-        </section>
+        </motion.div>
+      </div>
 
-        {/* Main Content */}
-        <div className="responsive-container py-6 sm:py-8">
-          {/* Trending Destinations */}
-          <section className="mb-8 sm:mb-12">
-            <SectionTitle withViewAll link="/explore">
-              {t.trendingDestinations}
-            </SectionTitle>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-              {places.length > 0 ? (
-                places.map(place => (
+      {/* Trending Places Section - Mobile Optimized */}
+      <div className="max-w-7xl mx-auto px-4 py-6 sm:py-16">
+        <div className="flex items-center mb-2 sm:mb-3">
+          <h2 className="text-xl sm:text-2xl md:text-3xl font-bold">
+            {language === 'hi' ? 'ट्रेंडिंग स्थान' : 'Trending Destinations'}
+          </h2>
+          <div className="ml-3 bg-gradient-to-r from-orange-500 to-pink-500 text-white text-xs font-medium py-1 px-3 rounded-full shadow-sm flex items-center">
+            <i className="fas fa-fire mr-1.5"></i>
+            <span>{language === 'hi' ? 'लोकप्रिय' : 'Hot'}</span>
+          </div>
+        </div>
+        <p className="text-gray-600 mb-4 sm:mb-8">
+          {language === 'hi' 
+            ? 'सबसे अधिक बुकमार्क किए गए और यात्रियों के बीच लोकप्रिय स्थान' 
+            : 'Most bookmarked destinations popular among travelers'}
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+          {places.map((place, index) => (
+            <div key={place.id} className="relative">
+              {/* Special badge for the top trending place */}
+              {index === 0 && (
+                <div className="absolute top-11 right-3 z-10 bg-yellow-400 bg-opacity-90 text-white text-[8px] py-0.5 px-1 rounded-sm shadow-sm flex items-center">
+                  <i className="fas fa-crown mr-1 text-[7px]"></i>
+                  <span className="truncate">{language === 'hi' ? 'नंबर 1' : 'Top Pick'}</span>
+                </div>
+              )}
+              <DestinationCard 
+                destination={place} 
+                language={language} 
+                onBookmarkToggle={toggleBookmark}
+                savedDestinations={savedDestinations}
+              />
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Recommended Places Section - Mobile Optimized */}
+      <div className="py-8 sm:py-16 bg-gray-100">
+        <div className="max-w-7xl mx-auto px-4">
+          <h2 className="text-xl sm:text-2xl md:text-3xl font-bold mb-4 sm:mb-8">
+            {t.recommendedForYou || 'Recommended for You'}
+            {!user && (
+              <span className="ml-2 text-sm font-normal text-blue-600">
+                <Link to="/auth" className="hover:underline">
+                  {t.signIn || 'Sign in'}
+                </Link> {t.forMorePersonalizedRecommendations || 'for more personalized recommendations'}
+              </span>
+            )}
+          </h2>
+          <Swiper
+            modules={[Pagination, Autoplay]}
+            spaceBetween={24}
+            slidesPerView={1}
+            breakpoints={{
+              640: {
+                slidesPerView: 2,
+                spaceBetween: 24,
+              },
+              1024: {
+                slidesPerView: 3,
+                spaceBetween: 24,
+              },
+            }}
+            pagination={{ clickable: true }}
+            autoplay={{ delay: 3000 }}
+            className="pb-12"
+          >
+            {recommendedPlaces.map(place => (
+              <SwiperSlide key={place.id}>
+                <div className="relative">
+                  {/* Recommendation badges - only show for authenticated users */}
+                  {user && (
+                    <div className="absolute top-3 right-3 z-10 flex flex-col items-end">
+                      {place.recommendationType === 'preference' && (
+                        <div className="bg-blue-500 bg-opacity-85 text-white text-[9px] py-0.5 px-1.5 rounded-sm mb-1 shadow-sm flex items-center">
+                          <i className="fas fa-thumbs-up mr-1 text-[8px]"></i>
+                          <span className="truncate max-w-24">
+                            {language === 'hi' ? 'पसंद अनुसार' : 'Preference Match'}
+                          </span>
+                        </div>
+                      )}
+                      {place.recommendationType === 'similarity' && (
+                        <div className="bg-purple-500 bg-opacity-85 text-white text-[9px] py-0.5 px-1.5 rounded-sm mb-1 shadow-sm flex items-center">
+                          <i className="fas fa-bookmark mr-1 text-[8px]"></i>
+                          <span className="truncate max-w-24">
+                            {language === 'hi' ? 'समान स्थान' : 'Similar to Saved'}
+                          </span>
+                        </div>
+                      )}
+                      {place.recommendationType === 'discovery' && (
+                        <div className="bg-green-500 bg-opacity-85 text-white text-[9px] py-0.5 px-1.5 rounded-sm mb-1 shadow-sm flex items-center">
+                          <i className="fas fa-compass mr-1 text-[8px]"></i>
+                          <span className="truncate max-w-24">
+                            {language === 'hi' ? 'नई खोज' : 'New Discovery'}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  )}
                   <DestinationCard 
-                    key={place.id} 
                     destination={place} 
                     language={language} 
                     onBookmarkToggle={toggleBookmark}
                     savedDestinations={savedDestinations}
                   />
-                ))
-              ) : (
-                <div className="col-span-full text-center py-12 bg-white rounded-lg shadow-sm">
-                  <p className="text-gray-500 mb-4">{t.noPlacesFound}</p>
-                  <Link to="/add-place" className="text-blue-600 hover:text-blue-800">
-                    {t.addPlace}
-                  </Link>
                 </div>
-              )}
-            </div>
-          </section>
-
-          {/* Recommended Destinations */}
-          <section className="mb-8 sm:mb-12">
-            <SectionTitle withViewAll link="/recommend">
-              {t.recommendedForYou}
-            </SectionTitle>
-
-            {recommendedPlaces.length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-                {recommendedPlaces.map(place => (
-                  <div key={place.id} className="relative">
-                    <DestinationCard 
-                      destination={place} 
-                      language={language} 
-                      onBookmarkToggle={toggleBookmark}
-                      savedDestinations={savedDestinations}
-                    />
-                    {/* Recommendation badges */}
-                    <div className="absolute top-2 left-2 z-10 flex gap-1">
-                      {preferenceBasedIds.includes(place.id) && (
-                        <div className="bg-blue-600 text-white text-[8px] py-0.5 px-1.5 rounded-sm shadow-sm flex items-center">
-                          <i className="fas fa-check-circle mr-1 text-[7px]"></i>
-                          <span className="truncate max-w-[60px]">{t.preferenceMatch}</span>
-                        </div>
-                      )}
-                      {similarityBasedIds.includes(place.id) && (
-                        <div className="bg-purple-600 text-white text-[8px] py-0.5 px-1.5 rounded-sm shadow-sm flex items-center">
-                          <i className="fas fa-clone mr-1 text-[7px]"></i>
-                          <span className="truncate max-w-[60px]">{t.similarToSaved}</span>
-                        </div>
-                      )}
-                      {discoveryIds.includes(place.id) && (
-                        <div className="bg-green-600 text-white text-[8px] py-0.5 px-1.5 rounded-sm shadow-sm flex items-center">
-                          <i className="fas fa-compass mr-1 text-[7px]"></i>
-                          <span className="truncate max-w-[60px]">{t.newDiscovery}</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="bg-white rounded-lg shadow-sm p-6 text-center">
-                <p className="text-gray-500 mb-4">
-                  {user ? t.noPlacesFoundForSelectedCriteria : t.forMorePersonalizedRecommendations}
-                </p>
-                {!user && (
-                  <Link to="/auth" className="text-blue-600 hover:text-blue-800">
-                    {t.signIn}
-                  </Link>
-                )}
-              </div>
-            )}
-          </section>
-
-          {/* Saved Destinations - Only show if user has saved destinations */}
-          {user && savedDestinations.length > 0 && (
-            <section>
-              <SectionTitle withViewAll link="/profile">
-                {t.savedDestinations}
-              </SectionTitle>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-                {savedDestinations.slice(0, 3).map(destination => (
-                  <DestinationCard 
-                    key={destination} 
-                    destination={places.find(p => p.id === destination) || recommendedPlaces.find(p => p.id === destination) || { id: destination }}
-                    language={language} 
-                    onBookmarkToggle={toggleBookmark}
-                    savedDestinations={savedDestinations}
-                  />
-                ))}
-              </div>
-            </section>
-          )}
+              </SwiperSlide>
+            ))}
+          </Swiper>
         </div>
-      </main>
+      </div>
+
+      {/* Loading and Error States - Mobile Optimized */}
+      {loading && (
+        <div className="flex items-center justify-center min-h-[50vh]">
+          <LoadingScreen language={language} type="inline" size="small" />
+        </div>
+      )}
+
+      {error && (
+        <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+          <div className="text-lg sm:text-xl text-red-600 text-center">{error}</div>
+        </div>
+      )}
     </div>
-  );
+  )
 }
 
 Home.propTypes = {
