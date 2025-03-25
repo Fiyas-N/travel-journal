@@ -29,10 +29,7 @@ import { getReviewCount } from './utils/ratings'
 // Languages configuration
 const languages = [
   { code: 'en', name: 'English' },
-  { code: 'hi', name: 'हिंदी' },
-  { code: 'ml', name: 'മലയാളം' },
-  { code: 'ta', name: 'தமிழ்' },
-  { code: 'kn', name: 'ಕನ್ನಡ' }
+  { code: 'hi', name: 'हिंदी' }
 ]
 
 // Create Material UI theme
