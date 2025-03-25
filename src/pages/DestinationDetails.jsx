@@ -33,6 +33,8 @@ const DestinationDetails = ({ language, setLanguage, languages, user }) => {
   const [imageLoading, setImageLoading] = useState(false)
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [showShortcutsInfo, setShowShortcutsInfo] = useState(false)
+  const [modalImageLoaded, setModalImageLoaded] = useState(false)
+  const [modalImageError, setModalImageError] = useState(false)
 
   // Get translations for the current language
   const t = translations[language] || translations.en
@@ -497,36 +499,36 @@ const DestinationDetails = ({ language, setLanguage, languages, user }) => {
         setIsProfileOpen={setIsProfileOpen}
       />
       <div className="pt-16">
-        <div className="relative h-[500px]">
+        <div className="relative h-[300px] sm:h-[400px] md:h-[500px]">
           <img
             src={place.images?.[0] || ''}
             className="w-full h-full object-cover"
             alt={place.name}
           />
-          <div className="absolute inset-0 bg-gradient-to-r from-black/50 to-transparent"></div>
-          <div className="absolute bottom-0 left-0 p-8 text-white max-w-2xl">
-            <h1 className="text-5xl font-bold mb-4">{place.name}</h1>
-            <div className="flex items-center space-x-4 mb-4">
+          <div className="absolute inset-0 bg-gradient-to-r from-black/70 to-transparent"></div>
+          <div className="absolute bottom-0 left-0 p-4 sm:p-8 text-white max-w-full sm:max-w-2xl">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-2 sm:mb-4 line-clamp-2">{place.name}</h1>
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mb-2 sm:mb-4">
               <div className="flex items-center space-x-2">
                 <div className="flex items-center">
                   <i className="fas fa-star text-yellow-400 mr-1"></i>
-                  <span className="text-xl">{place.averageRating?.toFixed(1) || '0.0'}</span>
+                  <span className="text-lg sm:text-xl">{place.averageRating?.toFixed(1) || '0.0'}</span>
                 </div>
                 <div className="flex items-center">
                   {[1, 2, 3, 4, 5].map((star) => (
                     <button
                       key={star}
                       onClick={() => handleRating(star)}
-                      className="text-xl px-1 focus:outline-none bg-transparent"
+                      className="text-lg sm:text-xl px-1 focus:outline-none bg-transparent"
                     >
                       <i className={`${userRating >= star ? 'fas' : 'far'} fa-star text-yellow-400 [text-shadow:_0_1px_2px_rgba(0,0,0,0.3)]`}></i>
                     </button>
                   ))}
                 </div>
               </div>
-              <div className="flex items-center">
+              <div className="flex items-center text-sm sm:text-base">
                 <i className="fas fa-map-marker-alt mr-2"></i>
-                <span>{place.district}, {place.state}, {place.country}</span>
+                <span className="line-clamp-1">{place.district}, {place.state}, {place.country}</span>
               </div>
             </div>
           </div>
@@ -563,37 +565,37 @@ const DestinationDetails = ({ language, setLanguage, languages, user }) => {
         </div>
       )}
 
-      <div className="max-w-7xl mx-auto px-4 py-12">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 py-6 sm:py-12">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-8">
           <div className="lg:col-span-2">
-            <div className="bg-white rounded-lg shadow-lg p-6 mb-8">
-              <h2 className="text-2xl font-bold mb-4">{t.description}</h2>
-              <div className="text-gray-700 mb-6 whitespace-pre-line">
+            <div className="bg-white rounded-lg shadow-lg p-4 sm:p-6 mb-4 sm:mb-8">
+              <h2 className="text-xl sm:text-2xl font-bold mb-3 sm:mb-4">{t.description}</h2>
+              <div className="text-gray-700 mb-4 sm:mb-6 whitespace-pre-line text-sm sm:text-base">
                 {getTranslatedContent(place.description)}
               </div>
-              <div className="flex flex-wrap gap-2 mb-6">
+              <div className="flex flex-wrap gap-2 mb-4 sm:mb-6">
                 {place.tags?.map((tag, index) => (
-                  <span key={index} className="px-3 py-1 bg-blue-100 text-blue-600 rounded-full text-sm">
+                  <span key={index} className="px-2 sm:px-3 py-1 bg-blue-100 text-blue-600 rounded-full text-xs sm:text-sm">
                     {tag}
                   </span>
                 ))}
               </div>
             </div>
 
-            <div className="bg-white rounded-lg shadow-lg p-6 mb-8">
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-2xl font-bold">{t.reviews}</h2>
+            <div className="bg-white rounded-lg shadow-lg p-4 sm:p-6 mb-4 sm:mb-8">
+              <div className="flex justify-between items-center mb-4 sm:mb-6">
+                <h2 className="text-xl sm:text-2xl font-bold">{t.reviews}</h2>
                 <button
-                  className="rounded-md whitespace-nowrap flex items-center text-blue-600"
+                  className="rounded-md whitespace-nowrap flex items-center text-blue-600 text-sm sm:text-base"
                   onClick={handleLike}
                 >
                   <i className={`${hasLiked ? 'fas' : 'far'} fa-heart mr-2`}></i>
                   {hasLiked ? t.liked || 'Liked' : t.like || 'Like'}
                 </button>
               </div>
-              <div className="mb-6">
+              <div className="mb-4 sm:mb-6">
                 <textarea
-                  className="w-full p-3 border border-gray-200 rounded-lg resize-none focus:outline-none focus:border-blue-500"
+                  className="w-full p-3 border border-gray-200 rounded-lg resize-none focus:outline-none focus:border-blue-500 text-sm sm:text-base"
                   rows={3}
                   placeholder={t.writeReview}
                   value={comment}
@@ -601,24 +603,24 @@ const DestinationDetails = ({ language, setLanguage, languages, user }) => {
                 ></textarea>
                 <button 
                   onClick={handleCommentSubmit}
-                  className="rounded-md whitespace-nowrap mt-2 bg-blue-600 text-white px-6 py-2 hover:bg-blue-700"
+                  className="rounded-md whitespace-nowrap mt-2 bg-blue-600 text-white px-4 sm:px-6 py-2 hover:bg-blue-700 text-sm sm:text-base"
                 >
                   {t.submitReview}
                 </button>
               </div>
-              <div className="space-y-6">
+              <div className="space-y-4 sm:space-y-6">
                 {comments.map(comment => (
-                  <div key={comment.id} className="flex space-x-4">
+                  <div key={comment.id} className="flex space-x-3 sm:space-x-4">
                     <img 
                       src={comment.userImage || 'https://public.readdy.ai/ai/img_res/c2e32c0833fb59a69945f4c0b2ca442d.jpg'} 
                       alt={comment.userName} 
-                      className="w-12 h-12 rounded-full object-cover"
+                      className="w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover flex-shrink-0"
                     />
-                    <div className="flex-1">
+                    <div className="flex-1 min-w-0">
                       <div className="flex justify-between items-start">
-                        <h3 className="font-semibold">{comment.userName}</h3>
-                        <div className="flex items-center space-x-2">
-                          <span className="text-sm text-gray-500">
+                        <h3 className="font-semibold text-sm sm:text-base truncate">{comment.userName}</h3>
+                        <div className="flex items-center space-x-2 flex-shrink-0">
+                          <span className="text-xs sm:text-sm text-gray-500">
                             {new Date(comment.createdAt).toLocaleDateString()}
                           </span>
                           {user && comment.userId === user.uid && (
@@ -627,13 +629,13 @@ const DestinationDetails = ({ language, setLanguage, languages, user }) => {
                               className="text-red-500 hover:text-red-700 transition-colors p-1 rounded-full hover:bg-red-50"
                               title={t.delete}
                             >
-                              <i className="fas fa-trash-alt text-sm"></i>
+                              <i className="fas fa-trash-alt text-xs sm:text-sm"></i>
                             </button>
                           )}
                         </div>
                       </div>
-                      <p className="text-gray-600 mt-1">{comment.text}</p>
-                      <div className="flex items-center mt-2 text-sm text-gray-500">
+                      <p className="text-gray-600 mt-1 text-sm sm:text-base">{comment.text}</p>
+                      <div className="flex items-center mt-2 text-xs sm:text-sm text-gray-500">
                         <button 
                           onClick={() => handleCommentLike(comment.id)}
                           className="flex items-center hover:text-blue-600 transition-colors"
@@ -650,9 +652,9 @@ const DestinationDetails = ({ language, setLanguage, languages, user }) => {
           </div>
 
           <div className="lg:col-span-1">
-            <div className="bg-white rounded-lg shadow-lg p-6 mb-8">
-              <h2 className="text-xl font-bold mb-4">{t.location}</h2>
-              <div className="text-gray-700 mb-4">
+            <div className="bg-white rounded-lg shadow-lg p-4 sm:p-6 mb-4 sm:mb-8">
+              <h2 className="text-lg sm:text-xl font-bold mb-3 sm:mb-4">{t.location}</h2>
+              <div className="text-gray-700 mb-4 text-sm sm:text-base">
                 <div className="flex items-center mb-2">
                   <i className="fas fa-map-marker-alt text-red-500 mr-2"></i>
                   <span>{place.district}, {place.state}, {place.country}</span>
@@ -664,15 +666,15 @@ const DestinationDetails = ({ language, setLanguage, languages, user }) => {
               </div>
             </div>
 
-            <div className="bg-white rounded-lg shadow-lg p-6 mb-8">
-              <h2 className="text-xl font-bold mb-4">{t.imageNotAvailable ? t.imageNotAvailable.replace('not available', 'Gallery') : 'Photo Gallery'}</h2>
+            <div className="bg-white rounded-lg shadow-lg p-4 sm:p-6 mb-4 sm:mb-8">
+              <h2 className="text-lg sm:text-xl font-bold mb-3 sm:mb-4">{t.imageNotAvailable ? t.imageNotAvailable.replace('not available', 'Gallery') : 'Photo Gallery'}</h2>
               {place.images && place.images.length > 0 ? (
                 <>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-2 gap-2 sm:gap-4">
                     {place.images.slice(0, 4).map((image, index) => (
                       <div 
                         key={index}
-                        className="relative aspect-square rounded-lg overflow-hidden cursor-pointer hover:opacity-90 transition-opacity"
+                        className="relative aspect-square rounded-lg overflow-hidden cursor-pointer hover:opacity-90 transition-opacity touch-manipulation"
                         onClick={() => openImageModal(index)}
                       >
                         <img
@@ -682,10 +684,11 @@ const DestinationDetails = ({ language, setLanguage, languages, user }) => {
                           onError={() => {
                             setImageLoadError(prev => ({ ...prev, [index]: true }))
                           }}
+                          loading="lazy"
                         />
                         {imageLoadError[index] && (
                           <div className="absolute inset-0 bg-gray-100 flex items-center justify-center">
-                            <i className="fas fa-image text-gray-400 text-3xl"></i>
+                            <i className="fas fa-image text-gray-400 text-2xl sm:text-3xl"></i>
                           </div>
                         )}
                       </div>
@@ -694,7 +697,7 @@ const DestinationDetails = ({ language, setLanguage, languages, user }) => {
                   {place.images.length > 4 && (
                     <button
                       onClick={() => openImageModal(0)}
-                      className="w-full mt-4 text-blue-600 hover:text-blue-700 text-sm"
+                      className="w-full mt-3 sm:mt-4 text-blue-600 hover:text-blue-700 text-xs sm:text-sm py-2 border border-blue-100 rounded-lg hover:bg-blue-50 transition-colors"
                     >
                       {t.viewAll ? `${t.viewAll} ${place.images.length - 4} ${t.more || 'more photos'}` : `View ${place.images.length - 4} more photos`}
                     </button>
@@ -703,8 +706,8 @@ const DestinationDetails = ({ language, setLanguage, languages, user }) => {
               ) : (
                 <div className="aspect-video bg-gray-100 rounded-lg flex items-center justify-center">
                   <div className="text-center text-gray-500">
-                    <i className="fas fa-image text-3xl mb-2"></i>
-                    <p>{t.imageNotAvailable}</p>
+                    <i className="fas fa-image text-2xl sm:text-3xl mb-2"></i>
+                    <p className="text-sm sm:text-base">{t.imageNotAvailable}</p>
                   </div>
                 </div>
               )}
@@ -715,168 +718,129 @@ const DestinationDetails = ({ language, setLanguage, languages, user }) => {
 
       {/* Image Modal/Lightbox */}
       {showImageModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-95 z-50 flex items-center justify-center p-4" id="imageModalContainer">
+        <div className="fixed inset-0 bg-black bg-opacity-95 z-50 flex items-center justify-center p-2 sm:p-4" id="imageModalContainer">
           <div className={`relative w-full max-w-6xl mx-auto h-full max-h-[90vh] flex flex-col ${isFullscreen ? 'max-w-none max-h-none' : ''}`}>
-            {/* Header with controls and image counter - improved styling */}
-            <div className="flex justify-between items-center py-3 px-4 text-white mb-3 bg-black bg-opacity-50 backdrop-blur-sm rounded-t-lg">
+            {/* Header with controls and image counter - improved mobile styling */}
+            <div className="flex justify-between items-center py-2 sm:py-3 px-2 sm:px-4 text-white mb-2 sm:mb-3 bg-black bg-opacity-50 backdrop-blur-sm rounded-t-lg">
               <div className="flex items-center">
-                <i className="fas fa-images mr-2 text-blue-300"></i>
-                <div className="text-sm md:text-base font-medium">
-                  <span className="bg-blue-900 bg-opacity-70 px-2 py-1 rounded">
+                <i className="fas fa-images mr-1 sm:mr-2 text-blue-300"></i>
+                <div className="text-xs sm:text-sm md:text-base font-medium">
+                  <span className="bg-blue-900 bg-opacity-70 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded">
                     {selectedImageIndex + 1} / {place.images.length}
                   </span>
                 </div>
               </div>
-              <div className="flex items-center space-x-3">
+              <div className="flex items-center space-x-2 sm:space-x-3">
                 {/* Fullscreen toggle button */}
                 <button
                   onClick={toggleFullscreen}
-                  className="text-white hover:text-blue-400 z-10 px-3 py-2 transition-all bg-black bg-opacity-70 hover:bg-opacity-90 rounded-lg flex items-center justify-center border border-white border-opacity-30"
+                  className="text-white hover:text-blue-400 z-10 p-2 sm:px-3 sm:py-2 transition-all bg-black bg-opacity-70 hover:bg-opacity-90 rounded-lg flex items-center justify-center border border-white border-opacity-30"
                   aria-label={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
                   title={isFullscreen ? "Exit fullscreen (F)" : "Enter fullscreen (F)"}
                 >
-                  <i className={`fas ${isFullscreen ? 'fa-compress' : 'fa-expand'} mr-1.5`}></i>
+                  <i className={`fas ${isFullscreen ? 'fa-compress' : 'fa-expand'} sm:mr-1.5`}></i>
                   <span className="text-sm hidden sm:inline">{isFullscreen ? (language === 'hi' ? 'पूर्ण स्क्रीन से बाहर निकलें' : 'Exit Fullscreen') : (language === 'hi' ? 'पूर्ण स्क्रीन' : 'Fullscreen')}</span>
                 </button>
                 {/* Close button */}
                 <button
                   onClick={() => setShowImageModal(false)}
-                  className="text-white hover:text-red-400 z-10 px-3 py-2 transition-all bg-black bg-opacity-70 hover:bg-opacity-90 rounded-lg flex items-center justify-center border border-white border-opacity-30"
+                  className="text-white hover:text-red-400 z-10 p-2 sm:px-3 sm:py-2 transition-all bg-black bg-opacity-70 hover:bg-opacity-90 rounded-lg flex items-center justify-center border border-white border-opacity-30"
                   aria-label="Close image viewer"
                   title="Close (ESC)"
                 >
-                  <i className="fas fa-times mr-1.5"></i>
+                  <i className="fas fa-times sm:mr-1.5"></i>
                   <span className="text-sm hidden sm:inline">{language === 'hi' ? 'बंद करें' : 'Close'}</span>
                 </button>
               </div>
             </div>
             
-            {/* Main image container with improved design */}
-            <div className={`relative flex-1 overflow-hidden flex items-center justify-center ${isFullscreen ? 'h-screen' : ''}`}>
-              {imageLoading && (
-                <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 z-10">
-                  <LoadingScreen language={language} type="overlay" size="small" message={language === 'hi' ? 'छवि लोड हो रही है...' : 'Loading image...'} />
-                </div>
-              )}
-              <img
-                src={place.images[selectedImageIndex]}
-                alt={`${place.name} - Image ${selectedImageIndex + 1}`}
-                className={`max-w-full max-h-full object-contain transition-transform duration-200 ${isFullscreen ? 'scale-[0.98]' : ''}`}
-                onLoad={() => setImageLoading(false)}
-                onError={(e) => {
-                  setImageLoading(false);
-                  setImageLoadError(prev => ({ ...prev, [selectedImageIndex]: true }));
-                  e.target.src = 'https://via.placeholder.com/800x600?text=Image+Not+Available';
+            {/* Main image container */}
+            <div className="flex-1 relative flex items-center justify-center overflow-hidden">
+              {/* Left navigation arrow */}
+              <button
+                onClick={() => {
+                  const prevIndex = selectedImageIndex === 0 ? place.images.length - 1 : selectedImageIndex - 1;
+                  changeModalImage(prevIndex);
                 }}
-              />
-              {imageLoadError[selectedImageIndex] && (
-                <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 z-10">
+                className="absolute left-1 sm:left-3 z-10 p-2 sm:p-3 text-white hover:text-blue-400 transition-colors bg-black bg-opacity-50 hover:bg-opacity-70 rounded-full"
+                aria-label="Previous image"
+              >
+                <i className="fas fa-chevron-left text-lg sm:text-2xl"></i>
+              </button>
+
+              {/* Main image */}
+              <div className="flex-1 h-full flex items-center justify-center">
+                {place.images && place.images[selectedImageIndex] ? (
+                  <img
+                    src={place.images[selectedImageIndex]}
+                    alt={`${place.name} - Image ${selectedImageIndex + 1}`}
+                    className={`max-h-full max-w-full object-contain transition-opacity ${modalImageLoaded ? 'opacity-100' : 'opacity-0'}`}
+                    onLoad={() => setModalImageLoaded(true)}
+                    onError={() => setModalImageError(true)}
+                  />
+                ) : (
                   <div className="text-white text-center p-4">
-                    <i className="fas fa-exclamation-circle text-4xl mb-2"></i>
-                    <p>{language === 'hi' ? 'छवि लोड करने में समस्या हुई' : 'Error loading image'}</p>
+                    <i className="fas fa-exclamation-triangle text-2xl sm:text-3xl text-yellow-400 mb-2"></i>
+                    <p className="text-sm sm:text-base">{t.imageLoadError || 'Failed to load image'}</p>
                   </div>
-                </div>
-              )}
-              
-              {/* Keyboard shortcuts info (only shown briefly on open) */}
-              {showShortcutsInfo && (
-                <div className="absolute bottom-20 left-1/2 transform -translate-x-1/2 bg-black bg-opacity-70 text-white text-xs md:text-sm px-4 py-3 rounded-lg pointer-events-none transition-opacity duration-300">
-                  <div className="text-center mb-2">
-                    <span className="font-medium">{language === 'hi' ? 'कीबोर्ड शॉर्टकट' : 'Keyboard Shortcuts'}</span>
+                )}
+
+                {!modalImageLoaded && !modalImageError && (
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="animate-spin rounded-full h-12 w-12 sm:h-16 sm:w-16 border-t-2 border-b-2 border-blue-400"></div>
                   </div>
-                  <div className="grid grid-cols-2 gap-x-4 gap-y-1">
-                    <div className="flex items-center">
-                      <span className="bg-white bg-opacity-20 rounded px-1.5 py-0.5 mr-2">←</span>
-                      <span>{language === 'hi' ? 'पिछला चित्र' : 'Previous image'}</span>
-                    </div>
-                    <div className="flex items-center">
-                      <span className="bg-white bg-opacity-20 rounded px-1.5 py-0.5 mr-2">→</span>
-                      <span>{language === 'hi' ? 'अगला चित्र' : 'Next image'}</span>
-                    </div>
-                    <div className="flex items-center">
-                      <span className="bg-white bg-opacity-20 rounded px-1.5 py-0.5 mr-2">F</span>
-                      <span>{language === 'hi' ? 'फुलस्क्रीन टॉगल' : 'Toggle fullscreen'}</span>
-                    </div>
-                    <div className="flex items-center">
-                      <span className="bg-white bg-opacity-20 rounded px-1.5 py-0.5 mr-2">ESC</span>
-                      <span>{language === 'hi' ? 'बंद करें' : 'Close viewer'}</span>
-                    </div>
+                )}
+
+                {modalImageError && (
+                  <div className="text-white text-center p-4">
+                    <i className="fas fa-exclamation-triangle text-2xl sm:text-3xl text-yellow-400 mb-2"></i>
+                    <p className="text-sm sm:text-base">{t.imageLoadError || 'Failed to load image'}</p>
                   </div>
-                </div>
-              )}
-              
-              {/* Navigation arrows with improved design */}
-              {place.images.length > 1 && (
-                <>
-                  <button
-                    onClick={() => {
-                      const prevIndex = selectedImageIndex === 0 ? place.images.length - 1 : selectedImageIndex - 1;
-                      changeModalImage(prevIndex);
-                    }}
-                    className="absolute left-2 md:left-4 p-3 md:p-4 rounded-full bg-black bg-opacity-70 hover:bg-opacity-90 text-white transition-all transform hover:scale-110 border border-white border-opacity-30"
-                    aria-label="Previous image"
-                    title="Previous image (Left arrow)"
-                  >
-                    <i className="fas fa-chevron-left text-xl md:text-2xl"></i>
-                  </button>
-                  <button
-                    onClick={() => {
-                      const nextIndex = selectedImageIndex === place.images.length - 1 ? 0 : selectedImageIndex + 1;
-                      changeModalImage(nextIndex);
-                    }}
-                    className="absolute right-2 md:right-4 p-3 md:p-4 rounded-full bg-black bg-opacity-70 hover:bg-opacity-90 text-white transition-all transform hover:scale-110 border border-white border-opacity-30"
-                    aria-label="Next image"
-                    title="Next image (Right arrow)"
-                  >
-                    <i className="fas fa-chevron-right text-xl md:text-2xl"></i>
-                  </button>
-                </>
-              )}
+                )}
+              </div>
+
+              {/* Right navigation arrow */}
+              <button
+                onClick={() => {
+                  const nextIndex = selectedImageIndex === place.images.length - 1 ? 0 : selectedImageIndex + 1;
+                  changeModalImage(nextIndex);
+                }}
+                className="absolute right-1 sm:right-3 z-10 p-2 sm:p-3 text-white hover:text-blue-400 transition-colors bg-black bg-opacity-50 hover:bg-opacity-70 rounded-full"
+                aria-label="Next image"
+              >
+                <i className="fas fa-chevron-right text-lg sm:text-2xl"></i>
+              </button>
             </div>
             
-            {/* Thumbnail strip - hidden in fullscreen mode */}
-            {place.images.length > 1 && !isFullscreen && (
-              <div className="pt-4 px-4 flex justify-center">
-                <div className="flex overflow-x-auto gap-2 pb-2 max-w-full">
-                  {place.images.map((image, index) => (
-                    <button
-                      key={index}
-                      onClick={() => changeModalImage(index)}
-                      className={`flex-shrink-0 w-16 h-16 rounded-md overflow-hidden transition-all ${
-                        index === selectedImageIndex 
-                          ? 'border-2 border-blue-500 opacity-100 scale-105' 
-                          : 'border border-gray-600 opacity-60 hover:opacity-90'
-                      }`}
-                      aria-label={`View image ${index + 1}`}
-                    >
-                      <img 
-                        src={image} 
-                        alt={`Thumbnail ${index + 1}`}
-                        className="w-full h-full object-cover"
-                      />
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-            
-            {/* Mobile-friendly dot indicators - hidden in fullscreen mode */}
-            {place.images.length > 1 && !isFullscreen && (
-              <div className="md:hidden pt-2 pb-4 flex justify-center">
-                <div className="flex gap-2">
-                  {place.images.map((_, index) => (
-                    <button
-                      key={index}
-                      onClick={() => changeModalImage(index)}
-                      className={`w-2.5 h-2.5 rounded-full transition-all ${
-                        index === selectedImageIndex ? 'bg-blue-500 scale-110' : 'bg-gray-400'
-                      }`}
-                      aria-label={`Go to image ${index + 1}`}
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
+            {/* Thumbnails for navigation - hidden on mobile, shown on larger screens */}
+            <div className="hidden sm:flex justify-center space-x-2 pt-2 pb-3 px-2 overflow-x-auto bg-black bg-opacity-50 backdrop-blur-sm rounded-b-lg">
+              {place.images.map((image, index) => (
+                <button
+                  key={index}
+                  onClick={() => changeModalImage(index)}
+                  className={`${selectedImageIndex === index ? 'border-blue-400 opacity-100' : 'border-transparent opacity-60'} border-2 h-16 w-16 flex-shrink-0 overflow-hidden rounded transition-all hover:opacity-90`}
+                  aria-label={`View image ${index + 1}`}
+                >
+                  <img
+                    src={image}
+                    alt={`Thumbnail ${index + 1}`}
+                    className="h-full w-full object-cover"
+                  />
+                </button>
+              ))}
+            </div>
+
+            {/* Mobile dot indicators - only shown on small screens */}
+            <div className="flex sm:hidden justify-center space-x-1.5 pt-1 pb-3 bg-black bg-opacity-50 backdrop-blur-sm rounded-b-lg">
+              {place.images.map((_, index) => (
+                <button
+                  key={index}
+                  onClick={() => changeModalImage(index)}
+                  className={`${selectedImageIndex === index ? 'w-5 bg-blue-400' : 'w-2.5 bg-gray-400'} h-2.5 rounded-full transition-all touch-manipulation`}
+                  aria-label={`View image ${index + 1}`}
+                />
+              ))}
+            </div>
           </div>
         </div>
       )}

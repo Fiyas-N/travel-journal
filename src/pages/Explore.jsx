@@ -313,7 +313,7 @@ const Explore = ({ language, setLanguage, languages, user }) => {
         setIsProfileOpen={setIsProfileOpen}
       />
 
-      <main className="pt-20 pb-12 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+      <main className="pt-16 pb-12 px-3 sm:px-6 lg:px-8 max-w-7xl mx-auto">
         {loading ? (
           <div className="flex items-center justify-center min-h-[60vh]">
             <LoadingScreen language={language} type="inline" />
@@ -387,26 +387,45 @@ const Explore = ({ language, setLanguage, languages, user }) => {
         ) : (
           <>
             <motion.div 
-              className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl shadow-sm p-8 mb-8"
+              className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl shadow-sm p-4 sm:p-6 mb-6 sm:mb-8"
               variants={filterContainerVariants}
               initial="hidden"
               animate="visible"
             >
-              <div className="flex flex-wrap gap-6 items-center justify-between">
-                <div className="flex items-center space-x-6">
-                  <motion.div className="sort-dropdown relative" variants={filterItemVariants}>
+              <div className="flex flex-col sm:flex-row sm:flex-wrap gap-3 sm:gap-4 items-center sm:justify-between">
+                <div className="w-full sm:w-auto flex flex-wrap gap-3">
+                  {/* Mobile-friendly search input */}
+                  <div className="w-full sm:w-auto relative">
+                    <input
+                      type="text"
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      placeholder={language === 'hi' ? 'स्थान खोजें...' : 'Search destinations...'}
+                      className="w-full sm:w-64 px-3 py-2 rounded-md border border-gray-200 focus:border-blue-500 focus:outline-none text-sm"
+                    />
+                    <i className="fas fa-search absolute right-3 top-2.5 text-gray-400 text-sm"></i>
+                  </div>
+                </div>
+                
+                <div className="w-full sm:w-auto flex flex-wrap gap-3">
+                  <motion.div className="sort-dropdown relative w-full sm:w-auto flex-1 sm:flex-none" variants={filterItemVariants}>
                     <button
                       onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                      className="px-6 py-3 rounded-md bg-white shadow-sm hover:shadow-md transition-all duration-300 flex items-center space-x-2 border border-gray-100 cursor-pointer whitespace-nowrap"
+                      className="w-full sm:w-auto px-3 sm:px-4 py-2 rounded-md bg-white shadow-sm hover:shadow-md transition-all duration-300 flex items-center justify-between sm:space-x-2 border border-gray-100 cursor-pointer"
                     >
-                      <span className="text-gray-700 font-medium">
-                        Sort by: {sortBy === 'name' ? 'Name' : 'Rating'} ({sortOrder === 'asc' ? 'Ascending' : 'Descending'})
+                      <span className="text-gray-700 font-medium text-sm sm:text-base truncate">
+                        {sortBy === 'name' ? 
+                          (language === 'hi' ? 'नाम से क्रमबद्ध' : 'Sort by Name') : 
+                          (language === 'hi' ? 'रेटिंग से क्रमबद्ध' : 'Sort by Rating')}
+                        {" "}({sortOrder === 'asc' ? 
+                          (language === 'hi' ? 'आरोही' : 'Asc') : 
+                          (language === 'hi' ? 'अवरोही' : 'Desc')})
                       </span>
                       <i className={`fas fa-chevron-down text-gray-400 transition-transform duration-300 ${isDropdownOpen ? 'transform rotate-180' : ''}`}></i>
                     </button>
 
                     {isDropdownOpen && (
-                      <div className="absolute mt-2 w-64 bg-white rounded-lg shadow-lg border border-gray-100 py-2 z-50">
+                      <div className="absolute mt-1 w-full bg-white rounded-lg shadow-lg border border-gray-100 py-2 z-50">
                         {[
                           { label: 'Name (A to Z)', value: { by: 'name', order: 'asc' } },
                           { label: 'Name (Z to A)', value: { by: 'name', order: 'desc' } },
@@ -420,11 +439,11 @@ const Explore = ({ language, setLanguage, languages, user }) => {
                               setSortOrder(option.value.order);
                               setIsDropdownOpen(false);
                             }}
-                            className={`px-4 py-2 hover:bg-blue-50 cursor-pointer flex items-center justify-between ${
+                            className={`px-3 py-2 hover:bg-blue-50 cursor-pointer flex items-center justify-between ${
                               sortBy === option.value.by && sortOrder === option.value.order ? 'bg-blue-50' : ''
                             }`}
                           >
-                            <span>{language === 'hi' ? 
+                            <span className="text-sm">{language === 'hi' ? 
                               option.label === 'Name (A to Z)' ? 'नाम (A से Z)' : 
                               option.label === 'Name (Z to A)' ? 'नाम (Z से A)' : 
                               option.label === 'Rating (Low to High)' ? 'रेटिंग (कम से अधिक)' : 
@@ -439,20 +458,20 @@ const Explore = ({ language, setLanguage, languages, user }) => {
                     )}
                   </motion.div>
 
-                  <motion.div className="rating-dropdown relative" variants={filterItemVariants}>
+                  <motion.div className="rating-dropdown relative w-full sm:w-auto flex-1 sm:flex-none" variants={filterItemVariants}>
                     <button
                       onClick={() => setIsRatingDropdownOpen(!isRatingDropdownOpen)}
-                      className="px-6 py-3 rounded-md bg-white shadow-sm hover:shadow-md transition-all duration-300 flex items-center space-x-2 border border-gray-100 cursor-pointer whitespace-nowrap"
+                      className="w-full sm:w-auto px-3 sm:px-4 py-2 rounded-md bg-white shadow-sm hover:shadow-md transition-all duration-300 flex items-center justify-between sm:space-x-2 border border-gray-100 cursor-pointer"
                     >
-                      <i className="fas fa-star text-yellow-400"></i>
-                      <span className="text-gray-700 font-medium">
+                      <span className="text-gray-700 font-medium text-sm sm:text-base flex items-center">
+                        <i className="fas fa-star text-yellow-400 mr-2"></i>
                         {ratingFilter === 0 ? (language === 'hi' ? 'सभी रेटिंग' : 'All Ratings') : `${ratingFilter}+ ${language === 'hi' ? 'स्टार' : 'Stars'}`}
                       </span>
                       <i className={`fas fa-chevron-down text-gray-400 transition-transform duration-300 ${isRatingDropdownOpen ? 'transform rotate-180' : ''}`}></i>
                     </button>
 
                     {isRatingDropdownOpen && (
-                      <div className="absolute mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-100 py-2 z-50">
+                      <div className="absolute mt-1 w-full bg-white rounded-lg shadow-lg border border-gray-100 py-2 z-50">
                         {[0, 4.5, 4.7, 4.9].map((rating) => (
                           <div
                             key={rating}
@@ -460,52 +479,51 @@ const Explore = ({ language, setLanguage, languages, user }) => {
                               setRatingFilter(rating);
                               setIsRatingDropdownOpen(false);
                             }}
-                            className={`px-4 py-2 hover:bg-blue-50 cursor-pointer flex items-center justify-between ${
+                            className={`px-3 py-2 hover:bg-blue-50 cursor-pointer flex items-center justify-between ${
                               ratingFilter === rating ? 'bg-blue-50' : ''
                             }`}
                           >
-                            <span>{rating === 0 ? (language === 'hi' ? 'सभी रेटिंग' : 'All Ratings') : `${rating}+ ${language === 'hi' ? 'स्टार' : 'Stars'}`}</span>
+                            <span className="text-sm">{rating === 0 ? (language === 'hi' ? 'सभी रेटिंग' : 'All Ratings') : `${rating}+ ${language === 'hi' ? 'स्टार' : 'Stars'}`}</span>
                             {ratingFilter === rating && <i className="fas fa-check text-blue-600"></i>}
                           </div>
                         ))}
                       </div>
                     )}
                   </motion.div>
-                </div>
 
-                <motion.div className="relative">
-                  <motion.button
-                    variants={filterItemVariants}
-                    onClick={() => setShowTrending(!showTrending)}
-                    onMouseEnter={() => setShowTrendingTooltip(true)}
-                    onMouseLeave={() => setShowTrendingTooltip(false)}
-                    className={`px-6 py-3 rounded-md transition-all duration-300 flex items-center space-x-2 cursor-pointer whitespace-nowrap ${
-                      showTrending
-                        ? 'bg-blue-600 text-white shadow-lg scale-105'
-                        : 'bg-white text-gray-700 hover:shadow-md border border-gray-100'
-                    }`}
-                    aria-pressed={showTrending}
-                    aria-label={language === 'hi' ? 'ट्रेंडिंग स्थान फ़िल्टर' : 'Trending Places Filter'}
-                  >
-                    <i className={`fas fa-fire ${showTrending ? 'text-white' : 'text-orange-500'}`}></i>
-                    <span className="font-medium">{language === 'hi' ? 'ट्रेंडिंग स्थान' : 'Trending Places'}</span>
-                    {showTrending && (
-                      <i className="fas fa-check-circle ml-1 text-white text-sm"></i>
+                  <motion.div className="w-full sm:w-auto" variants={filterItemVariants}>
+                    <motion.button
+                      onClick={() => setShowTrending(!showTrending)}
+                      onMouseEnter={() => setShowTrendingTooltip(true)}
+                      onMouseLeave={() => setShowTrendingTooltip(false)}
+                      className={`w-full sm:w-auto px-3 sm:px-4 py-2 rounded-md transition-all duration-300 flex items-center justify-center space-x-2 ${
+                        showTrending
+                          ? 'bg-blue-600 text-white shadow-lg'
+                          : 'bg-white text-gray-700 hover:shadow-md border border-gray-100'
+                      }`}
+                      aria-pressed={showTrending}
+                      aria-label={language === 'hi' ? 'ट्रेंडिंग स्थान फ़िल्टर' : 'Trending Places Filter'}
+                    >
+                      <i className={`fas fa-fire ${showTrending ? 'text-white' : 'text-orange-500'}`}></i>
+                      <span className="font-medium text-sm sm:text-base">{language === 'hi' ? 'ट्रेंडिंग' : 'Trending'}</span>
+                      {showTrending && (
+                        <i className="fas fa-check-circle text-white text-sm"></i>
+                      )}
+                    </motion.button>
+                    
+                    {showTrendingTooltip && (
+                      <div className="absolute mt-2 w-64 bg-white rounded-lg shadow-lg border border-gray-100 py-2 px-3 z-50 text-sm right-0 hidden sm:block">
+                        {language === 'hi' 
+                          ? 'सबसे अधिक बुकमार्क किए गए शीर्ष 3 स्थान ट्रेंडिंग के रूप में दिखाए जाते हैं।' 
+                          : 'Showing the top 3 most bookmarked destinations as trending.'}
+                      </div>
                     )}
-                  </motion.button>
-                  
-                  {showTrendingTooltip && (
-                    <div className="absolute mt-2 w-64 bg-white rounded-lg shadow-lg border border-gray-100 py-2 px-3 z-50 text-sm right-0">
-                      {language === 'hi' 
-                        ? 'सबसे अधिक बुकमार्क किए गए शीर्ष 3 स्थान ट्रेंडिंग के रूप में दिखाए जाते हैं।' 
-                        : 'Showing the top 3 most bookmarked destinations as trending.'}
-                    </div>
-                  )}
-                </motion.div>
+                  </motion.div>
+                </div>
               </div>
             </motion.div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-8">
               {filteredDestinations.length === 0 ? (
                 <div className="col-span-full text-center py-8 text-gray-500">
                   {language === 'hi' 
