@@ -6,6 +6,28 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
     <title>Travel Journal</title>
+    <script>
+      // Get saved language preference or detect from browser
+      (function() {
+        var savedLang = localStorage.getItem('preferredLanguage');
+        if (savedLang) {
+          document.documentElement.setAttribute('lang', savedLang);
+          console.log('Initial language set from localStorage:', savedLang);
+        } else {
+          var browserLang = navigator.language || navigator.userLanguage;
+          // Extract primary language code (e.g., 'en-US' becomes 'en')
+          browserLang = browserLang.split('-')[0];
+          
+          // Check if browserLang is one of our supported languages
+          var supportedLangs = ['en', 'hi', 'ml'];
+          if (supportedLangs.includes(browserLang)) {
+            document.documentElement.setAttribute('lang', browserLang);
+            localStorage.setItem('preferredLanguage', browserLang);
+            console.log('Initial language detected from browser:', browserLang);
+          }
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

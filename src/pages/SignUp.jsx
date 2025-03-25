@@ -5,8 +5,12 @@ import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth'
 import { doc, setDoc } from 'firebase/firestore'
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage'
 import PropTypes from 'prop-types'
+import translations from '../utils/translations'
 
 const SignUp = ({ language }) => {
+  // Get translations for the current language
+  const t = translations[language] || translations.en;
+
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -61,42 +65,42 @@ const SignUp = ({ language }) => {
   const validateForm = () => {
     // Check all required fields
     if (!formData.name.trim()) {
-      setError('Name is required')
+      setError(t.nameRequired || 'Name is required')
       return false
     }
     
     if (!formData.email.trim()) {
-      setError('Email is required')
+      setError(t.emailRequired || 'Email is required')
       return false
     }
     
     if (!formData.phone.trim()) {
-      setError('Phone number is required')
+      setError(t.phoneRequired || 'Phone number is required')
       return false
     }
     
     if (!formData.location.trim()) {
-      setError('Location is required')
+      setError(t.locationRequired || 'Location is required')
       return false
     }
     
     if (formData.preferences.length === 0) {
-      setError('Please select at least one travel preference')
+      setError(t.preferencesRequired || 'Please select at least one travel preference')
       return false
     }
     
     if (!formData.password) {
-      setError('Password is required')
+      setError(t.passwordRequired || 'Password is required')
       return false
     }
     
     if (formData.password.length < 6) {
-      setError('Password must be at least 6 characters')
+      setError(t.passwordLength || 'Password must be at least 6 characters')
       return false
     }
     
     if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match')
+      setError(t.passwordsDoNotMatch || 'Passwords do not match')
       return false
     }
     
@@ -159,17 +163,17 @@ const SignUp = ({ language }) => {
   return (
     <div className="auth-container">
       <div className="auth-card">
-        <h2>Sign Up</h2>
+        <h2>{t.signUp || 'Sign Up'}</h2>
         {error && <div className="error-message">{error}</div>}
         
         <form onSubmit={handleSubmit}>
           <div className="form-group profile-image-upload">
-            <label>Profile Picture <span className="text-gray-500 text-xs font-normal">(Optional)</span></label>
+            <label>{t.profilePicture || 'Profile Picture'} <span className="text-gray-500 text-xs font-normal">({t.optional || 'Optional'})</span></label>
             <div className="profile-image-container">
               {previewURL ? (
                 <img 
                   src={previewURL} 
-                  alt="Profile preview" 
+                  alt={t.profilePreview || 'Profile preview'} 
                   className="profile-image-preview" 
                 />
               ) : (
@@ -191,13 +195,13 @@ const SignUp = ({ language }) => {
                 onClick={handleBrowseClick}
                 className="upload-button"
               >
-                Choose Photo
+                {t.choosePhoto || 'Choose Photo'}
               </button>
             </div>
           </div>
 
           <div className="form-group">
-            <label htmlFor="name">Name</label>
+            <label htmlFor="name">{t.name || 'Name'}</label>
             <input
               type="text"
               id="name"
@@ -209,7 +213,7 @@ const SignUp = ({ language }) => {
           </div>
 
           <div className="form-group">
-            <label htmlFor="email">Email</label>
+            <label htmlFor="email">{t.email || 'Email'}</label>
             <input
               type="email"
               id="email"
@@ -221,7 +225,7 @@ const SignUp = ({ language }) => {
           </div>
 
           <div className="form-group">
-            <label htmlFor="phone">Phone Number</label>
+            <label htmlFor="phone">{t.phone || 'Phone Number'}</label>
             <input
               type="tel"
               id="phone"
@@ -233,7 +237,7 @@ const SignUp = ({ language }) => {
           </div>
 
           <div className="form-group">
-            <label htmlFor="location">Location</label>
+            <label htmlFor="location">{t.location || 'Location'}</label>
             <input
               type="text"
               id="location"
@@ -245,7 +249,7 @@ const SignUp = ({ language }) => {
           </div>
 
           <div className="form-group">
-            <label>Travel Preferences</label>
+            <label>{t.travelPreferences || 'Travel Preferences'}</label>
             <div className="preferences-grid">
               {['Adventure', 'Culture', 'Nature', 'Food', 'Relaxation'].map(pref => (
                 <label key={pref} className="preference-item">
@@ -255,17 +259,17 @@ const SignUp = ({ language }) => {
                     checked={formData.preferences.includes(pref)}
                     onChange={handlePreferenceChange}
                   />
-                  {pref}
+                  {t[pref.toLowerCase()] || pref}
                 </label>
               ))}
             </div>
             {formData.preferences.length === 0 && (
-              <small className="text-red-500">Please select at least one preference</small>
+              <small className="text-red-500">{t.preferencesRequired || 'Please select at least one preference'}</small>
             )}
           </div>
 
           <div className="form-group">
-            <label htmlFor="password">Password</label>
+            <label htmlFor="password">{t.password || 'Password'}</label>
             <input
               type="password"
               id="password"
@@ -277,7 +281,7 @@ const SignUp = ({ language }) => {
           </div>
 
           <div className="form-group">
-            <label htmlFor="confirmPassword">Confirm Password</label>
+            <label htmlFor="confirmPassword">{t.confirmPassword || 'Confirm Password'}</label>
             <input
               type="password"
               id="confirmPassword"
@@ -289,12 +293,12 @@ const SignUp = ({ language }) => {
           </div>
 
           <button type="submit" disabled={loading} className="signup-button">
-            {loading ? 'Creating Account...' : 'Sign Up'}
+            {loading ? (t.creatingAccount || 'Creating Account...') : (t.signUp || 'Sign Up')}
           </button>
         </form>
 
         <p className="auth-redirect">
-          Already have an account? <Link to="/signin">Sign In</Link>
+          {t.alreadyHaveAccount || 'Already have an account?'} <Link to="/signin">{t.signIn || 'Sign In'}</Link>
         </p>
       </div>
     </div>

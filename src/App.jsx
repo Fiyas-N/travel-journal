@@ -22,6 +22,8 @@ import { onAuthStateChanged } from 'firebase/auth'
 import ProtectedRoute from './components/ProtectedRoute'
 import Auth from './pages/Auth'
 import Explore from './pages/Explore'
+import LoadingScreen from './components/LoadingScreen'
+import translations from './utils/translations'
 
 // Import the utility function if needed
 import { getReviewCount } from './utils/ratings'
@@ -29,7 +31,8 @@ import { getReviewCount } from './utils/ratings'
 // Languages configuration
 const languages = [
   { code: 'en', name: 'English' },
-  { code: 'hi', name: 'हिंदी' }
+  { code: 'hi', name: 'हिंदी' },
+  { code: 'ml', name: 'മലയാളം' }
 ]
 
 // Create Material UI theme
@@ -185,6 +188,24 @@ function App() {
   const [loading, setLoading] = useState(true)
   const [language, setLanguage] = useState('en')
 
+  // Add effect to log language changes
+  useEffect(() => {
+    console.log('Language changed to:', language);
+    
+    // Save language preference to localStorage
+    localStorage.setItem('preferredLanguage', language);
+    document.documentElement.setAttribute('lang', language);
+  }, [language]);
+
+  // Load preferred language from localStorage on initial load
+  useEffect(() => {
+    const savedLanguage = localStorage.getItem('preferredLanguage');
+    if (savedLanguage && languages.some(lang => lang.code === savedLanguage)) {
+      console.log('Loading saved language preference:', savedLanguage);
+      setLanguage(savedLanguage);
+    }
+  }, []);
+
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setUser(user)
@@ -203,7 +224,9 @@ function App() {
   }, [])
 
   if (loading) {
-    return <div className="loading">Loading...</div>
+    // Get translations for the current language
+    const t = translations[language] || translations.en;
+    return <LoadingScreen language={language} message={t.initializingApp || 'Initializing application...'} />
   }
 
   return (

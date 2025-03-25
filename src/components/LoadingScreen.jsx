@@ -1,17 +1,16 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import translations from '../utils/translations';
+import { useTranslationContext } from './TranslationProvider';
 
 /**
  * Animated loading screen component to be used across the application
  * @param {Object} props - Component props
- * @param {string} props.language - Current language for translations
  * @param {string} [props.size='default'] - Size of the loader (small, default, large)
  * @param {string} [props.message] - Optional custom loading message
  * @param {string} [props.type='fullpage'] - Type of loader (fullpage, inline, overlay)
  */
-const LoadingScreen = ({ language, size = 'default', message, type = 'fullpage' }) => {
-  const t = translations[language] || translations.en;
+const LoadingScreen = ({ size = 'default', message, type = 'fullpage' }) => {
+  const { t } = useTranslationContext();
   
   // Determine size classes for loader
   const sizeClasses = {
@@ -27,7 +26,7 @@ const LoadingScreen = ({ language, size = 'default', message, type = 'fullpage' 
     overlay: 'absolute inset-0 z-40 flex items-center justify-center bg-black bg-opacity-50',
   }[type] || 'fixed inset-0 z-50 flex items-center justify-center bg-white bg-opacity-90';
 
-  const loadingMessage = message || t.loading || 'Loading...';
+  const loadingMessage = message || t('loading') || 'Loading...';
 
   return (
     <div className={containerClasses}>
@@ -51,7 +50,6 @@ const LoadingScreen = ({ language, size = 'default', message, type = 'fullpage' 
 };
 
 LoadingScreen.propTypes = {
-  language: PropTypes.string.isRequired,
   size: PropTypes.oneOf(['small', 'default', 'large']),
   message: PropTypes.string,
   type: PropTypes.oneOf(['fullpage', 'inline', 'overlay'])

@@ -116,8 +116,22 @@ const Navbar = ({
   };
 
   const handleLanguageChange = (code) => {
-    setLanguage(code);
-    setShowLanguageDropdown(false);
+    console.log('Language change requested:', code);
+    // Ensure code is valid
+    if (languages.some(lang => lang.code === code)) {
+      setLanguage(code);
+      // Save to localStorage for persistence
+      localStorage.setItem('preferredLanguage', code);
+      console.log('Language changed to:', code);
+      
+      // Force re-render via a small state change
+      setShowLanguageDropdown(false);
+      
+      // Log current translations
+      console.log('Current translations for', code, ':', translations[code] ? Object.keys(translations[code]) : 'Not available');
+    } else {
+      console.error('Invalid language code:', code);
+    }
   };
 
   // Get translations for the current language
