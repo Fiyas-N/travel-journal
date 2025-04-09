@@ -28,7 +28,7 @@ const SignIn = ({ language }) => {
   }
 
   return (
-    <div className="auth-container">
+    <div className="auth-container" style={{ marginTop: "100px", paddingTop: "30px" }}>
       <div className="auth-card">
         <h2>Sign In</h2>
         {error && <div className="error-message">{error}</div>}

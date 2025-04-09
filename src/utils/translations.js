@@ -145,8 +145,62 @@ const translations = {
     close: 'Close',
     initializingApp: 'Initializing application...',
     
+    // Loading Screen
+    travelJournal: 'Travel Journal',
+    discoveringWorld: 'Discovering the world for you...',
+    
     // Language Selection
     selectLanguage: 'Select Language',
+    
+    // OTP Verification
+    phoneVerification: 'Phone Verification',
+    sendVerificationCode: 'Send Verification Code',
+    verificationCodeSent: 'Verification code sent',
+    enterOtpCode: 'Enter OTP Code',
+    verifyOtp: 'Verify OTP',
+    phoneVerified: 'Phone number verified!',
+    changePhone: 'Change Phone',
+    invalidOtp: 'Invalid OTP code',
+    phoneVerificationRequired: 'Phone verification is required',
+    verifyPhoneNumber: 'Please verify your phone number',
+    enterValidPhone: 'Please enter a valid phone number',
+    recaptchaVerified: 'reCAPTCHA verified. You can now send OTP.',
+    otpSent: 'OTP has been sent to your phone. Please enter the code to verify.',
+    valid: 'Valid',
+    phoneHelp: '',
+    selectCountry: 'Select country',
+    
+    // Step-based signup
+    fullName: 'Full Name',
+    next: 'Next',
+    back: 'Back',
+    stepText: 'Step',
+    of: 'of',
+    phoneNumber: 'Phone Number',
+    enterYourLocation: 'Enter your city, region or country',
+    
+    // Comment and reporting related translations
+    editComment: 'Edit Comment',
+    updateComment: 'Update Comment',
+    reportDestination: 'Report Destination',
+    reportComment: 'Report Comment',
+    report: 'Report',
+    reportReason: 'Reason for reporting',
+    reportSubmitted: 'Report submitted',
+    reportThankYou: 'Thank you for your report. We will review it shortly.',
+    selectReportReason: 'Select a reason',
+    inappropriateContent: 'Inappropriate content',
+    spam: 'Spam',
+    falseInformation: 'False information',
+    hateSpeech: 'Hate speech',
+    harassment: 'Harassment',
+    other: 'Other',
+    enterReportDetails: 'Enter details (optional)',
+    submitReport: 'Submit Report',
+    cancelReport: 'Cancel',
+    reporting: 'Reporting...',
+    alreadyReported: 'Already reported',
+    youHaveAlreadyReportedThis: 'You have already reported this item',
   },
   
   ml: {
@@ -297,8 +351,62 @@ const translations = {
     close: 'അടയ്ക്കുക',
     initializingApp: 'ആപ്ലിക്കേഷൻ ആരംഭിക്കുന്നു...',
     
+    // Loading Screen
+    travelJournal: 'യാത്രാ ഡയറി',
+    discoveringWorld: 'നിങ്ങൾക്കായി ലോകം കണ്ടെത്തുന്നു...',
+    
     // Language Selection
     selectLanguage: 'ഭാഷ തിരഞ്ഞെടുക്കുക',
+    
+    // OTP Verification
+    phoneVerification: 'ഫോൺ പരിശോധന',
+    sendVerificationCode: 'പരിശോധനാ കോഡ് അയക്കുക',
+    verificationCodeSent: 'പരിശോധനാ കോഡ് അയച്ചു',
+    enterOtpCode: 'OTP കോഡ് നൽകുക',
+    verifyOtp: 'OTP പരിശോധിക്കുക',
+    phoneVerified: 'ഫോൺ നമ്പർ പരിശോധിച്ചു!',
+    changePhone: 'ഫോൺ നമ്പർ മാറ്റുക',
+    invalidOtp: 'അസാധുവായ OTP കോഡ്',
+    phoneVerificationRequired: 'ഫോൺ പരിശോധന ആവശ്യമാണ്',
+    verifyPhoneNumber: 'നിങ്ങളുടെ ഫോൺ നമ്പർ പരിശോധിക്കുക',
+    enterValidPhone: 'സാധുവായ ഫോൺ നമ്പർ നൽകുക',
+    recaptchaVerified: 'reCAPTCHA പരിശോധിച്ചു. ഇപ്പോൾ നിങ്ങൾക്ക് OTP അയയ്ക്കാം.',
+    otpSent: 'നിങ്ങളുടെ ഫോണിലേക്ക് OTP അയച്ചു. പരിശോധിക്കുന്നതിന് കോഡ് നൽകുക.',
+    valid: 'സാധുവായത്',
+    phoneHelp: '',
+    selectCountry: 'രാജ്യം തിരഞ്ഞെടുക്കുക',
+    
+    // Step-based signup
+    fullName: 'Full Name',
+    next: 'Next',
+    back: 'Back',
+    stepText: 'Step',
+    of: 'of',
+    phoneNumber: 'Phone Number',
+    enterYourLocation: 'നിങ്ങളുടെ നഗരം, പ്രദേശം അല്ലെങ്കിൽ രാജ്യം നൽകുക',
+    
+    // Comment and reporting related translations
+    editComment: 'അഭിപ്രായം തിരുത്തുക',
+    updateComment: 'അഭിപ്രായം അപ്ഡേറ്റ് ചെയ്യുക',
+    reportDestination: 'ഡെസ്റ്റിനേഷൻ റിപ്പോർട്ട് ചെയ്യുക',
+    reportComment: 'അഭിപ്രായം റിപ്പോർട്ട് ചെയ്യുക',
+    report: 'റിപ്പോർട്ട്',
+    reportReason: 'റിപ്പോർട്ട് ചെയ്യാനുള്ള കാരണം',
+    reportSubmitted: 'റിപ്പോർട്ട് സമർപ്പിച്ചു',
+    reportThankYou: 'നിങ്ങളുടെ റിപ്പോർട്ടിന് നന്ദി. ഞങ്ങൾ ഉടൻ അത് പരിശോധിക്കും.',
+    selectReportReason: 'ഒരു കാരണം തിരഞ്ഞെടുക്കുക',
+    inappropriateContent: 'അനുചിതമായ ഉള്ളടക്കം',
+    spam: 'സ്പാം',
+    falseInformation: 'തെറ്റായ വിവരങ്ങൾ',
+    hateSpeech: 'വിദ്വേഷ പ്രസംഗം',
+    harassment: 'ഉപദ്രവം',
+    other: 'മറ്റുള്ളവ',
+    enterReportDetails: 'വിശദാംശങ്ങൾ നൽകുക (ഓപ്ഷണൽ)',
+    submitReport: 'റിപ്പോർട്ട് സമർപ്പിക്കുക',
+    cancelReport: 'റദ്ദാക്കുക',
+    reporting: 'റിപ്പോർട്ട് ചെയ്യുന്നു...',
+    alreadyReported: 'ഇതിനകം റിപ്പോർട്ട് ചെയ്തു',
+    youHaveAlreadyReportedThis: 'നിങ്ങൾ ഇത് ഇതിനകം റിപ്പോർട്ട് ചെയ്തിട്ടുണ്ട്',
   },
   
   hi: {
@@ -449,8 +557,62 @@ const translations = {
     close: 'बंद करें',
     initializingApp: 'ऐप्लिकेशन शुरू हो रहा है...',
     
+    // Loading Screen
+    travelJournal: 'यात्रा डायरी',
+    discoveringWorld: 'आपके लिए दुनिया की खोज कर रहे हैं...',
+    
     // Language Selection
     selectLanguage: 'भाषा चुनें',
+    
+    // OTP Verification
+    phoneVerification: 'फोन सत्यापन',
+    sendVerificationCode: 'सत्यापन कोड भेजें',
+    verificationCodeSent: 'सत्यापन कोड भेज दिया गया है',
+    enterOtpCode: 'OTP कोड दर्ज करें',
+    verifyOtp: 'OTP सत्यापित करें',
+    phoneVerified: 'फोन नंबर सत्यापित!',
+    changePhone: 'फोन नंबर बदलें',
+    invalidOtp: 'अमान्य OTP कोड',
+    phoneVerificationRequired: 'फोन सत्यापन आवश्यक है',
+    verifyPhoneNumber: 'कृपया अपना फोन नंबर सत्यापित करें',
+    enterValidPhone: 'कृपया एक मान्य फोन नंबर दर्ज करें',
+    recaptchaVerified: 'reCAPTCHA सत्यापित। अब आप OTP भेज सकते हैं।',
+    otpSent: 'OTP आपके फोन पर भेज दिया गया है। सत्यापित करने के लिए कृपया कोड दर्ज करें।',
+    valid: 'मान्य',
+    phoneHelp: '',
+    selectCountry: 'देश चुनें',
+    
+    // Step-based signup
+    fullName: 'Full Name',
+    next: 'Next',
+    back: 'Back',
+    stepText: 'Step',
+    of: 'of',
+    phoneNumber: 'Phone Number',
+    enterYourLocation: 'अपना शहर, क्षेत्र या देश दर्ज करें',
+    
+    // Comment and reporting related translations
+    editComment: 'टिप्पणी संपादित करें',
+    updateComment: 'टिप्पणी अपडेट करें',
+    reportDestination: 'स्थान की रिपोर्ट करें',
+    reportComment: 'टिप्पणी की रिपोर्ट करें',
+    report: 'रिपोर्ट करें',
+    reportReason: 'रिपोर्ट करने का कारण',
+    reportSubmitted: 'रिपोर्ट सबमिट की गई',
+    reportThankYou: 'आपकी रिपोर्ट के लिए धन्यवाद। हम जल्द ही इसकी समीक्षा करेंगे।',
+    selectReportReason: 'एक कारण चुनें',
+    inappropriateContent: 'अनुचित सामग्री',
+    spam: 'स्पैम',
+    falseInformation: 'गलत जानकारी',
+    hateSpeech: 'घृणा भाषण',
+    harassment: 'उत्पीड़न',
+    other: 'अन्य',
+    enterReportDetails: 'विवरण दर्ज करें (वैकल्पिक)',
+    submitReport: 'रिपोर्ट सबमिट करें',
+    cancelReport: 'रद्द करें',
+    reporting: 'रिपोर्ट कर रहे हैं...',
+    alreadyReported: 'पहले ही रिपोर्ट किया गया है',
+    youHaveAlreadyReportedThis: 'आपने इसे पहले ही रिपोर्ट कर दिया है',
   }
 };
 

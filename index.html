@@ -6,6 +6,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
     <title>Travel Journal</title>
+    <!-- Firebase Auth UI spacing fix -->
+    <style>
+      #firebaseui-auth-container,
+      .firebaseui-container,
+      .mdl-card,
+      div[role="dialog"],
+      .auth-container {
+        margin-top: 0 !important;
+        padding-top: 0 !important;
+      }
+    </style>
     <script>
       // Get saved language preference or detect from browser
       (function() {
@@ -26,6 +37,46 @@
             console.log('Initial language detected from browser:', browserLang);
           }
         }
+        
+        // Set default country to India for phone inputs
+        document.documentElement.setAttribute('data-default-country', 'IN');
+      })();
+      
+      // Fix Firebase Auth UI spacing issues
+      (function() {
+        // Check if we're on an auth page
+        function checkForAuthUI() {
+          var authContainers = [
+            document.getElementById('firebaseui-auth-container'),
+            document.querySelector('.firebaseui-container'),
+            document.querySelector('[data-page-type="auth"]')
+          ];
+          
+          var isAuthUIVisible = authContainers.some(function(container) {
+            return container !== null;
+          });
+          
+          if (isAuthUIVisible) {
+            document.body.setAttribute('data-auth-ui', 'visible');
+            
+            // Add additional spacing to the UI containers
+            authContainers.forEach(function(container) {
+              if (container) {
+                container.style.marginTop = '0';
+                container.style.paddingTop = '0';
+              }
+            });
+          } else {
+            document.body.removeAttribute('data-auth-ui');
+          }
+        }
+        
+        // Run on page load and whenever DOM changes
+        window.addEventListener('DOMContentLoaded', checkForAuthUI);
+        
+        // Set up a MutationObserver to detect when Firebase Auth UI gets added to the DOM
+        var observer = new MutationObserver(checkForAuthUI);
+        observer.observe(document.body, { childList: true, subtree: true });
       })();
     </script>
   </head>

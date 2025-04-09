@@ -550,7 +550,7 @@ const AddPlace = ({ language, setLanguage, languages }) => {
         setIsProfileOpen={setIsProfileOpen}
       />
       <div className="max-w-7xl mx-auto px-3 sm:px-4 py-6 sm:py-8 pt-16 sm:pt-20">
-        <div className="mb-4 sm:mb-8 flex items-center">
+        <div className="mb-6 sm:mb-8 flex items-center">
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
             {formTitle}
           </h1>
@@ -558,27 +558,27 @@ const AddPlace = ({ language, setLanguage, languages }) => {
         </div>
 
         {error && (
-          <div className="mb-4 sm:mb-6 bg-red-50 border border-red-200 text-red-600 px-3 sm:px-4 py-2 sm:py-3 rounded-lg text-sm sm:text-base">
+          <div className="mb-4 sm:mb-6 bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg">
             {error}
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow-lg p-4 sm:p-6 md:p-8">
+        <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow-lg p-4 sm:p-8">
           <div className="mb-6 sm:mb-8">
-            <label className="block text-sm font-medium text-gray-700 mb-1 sm:mb-2">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
               Images * (Add 1-5 images)
             </label>
-            <div className="flex flex-col sm:flex-row gap-2 mb-3 sm:mb-4">
+            <div className="flex flex-col sm:flex-row gap-2 mb-4">
               <input
                 type="file"
                 accept="image/*"
                 multiple
                 onChange={handleImageUpload}
-                className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent"
+                className="flex-1 px-2 sm:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent text-sm sm:text-base"
               />
             </div>
             {images.length > 0 && (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 sm:gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-4">
                 {images.map((base64String, index) => (
                   <div key={index} className="relative">
                     <img
@@ -589,7 +589,7 @@ const AddPlace = ({ language, setLanguage, languages }) => {
                     <button
                       type="button"
                       onClick={() => handleRemoveImage(index)}
-                      className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 sm:w-6 sm:h-6 flex items-center justify-center hover:bg-red-600"
+                      className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center hover:bg-red-600"
                     >
                       <i className="fas fa-times text-xs"></i>
                     </button>
@@ -597,33 +597,33 @@ const AddPlace = ({ language, setLanguage, languages }) => {
                 ))}
               </div>
             )}
-            <p className="mt-1 sm:mt-2 text-xs sm:text-sm text-gray-500">
+            <p className="mt-2 text-xs sm:text-sm text-gray-500">
               Maximum 5 images, each less than 10MB
             </p>
           </div>
 
-          <div className="mb-4 sm:mb-6">
-            <label className="block text-sm font-medium text-gray-700 mb-1 sm:mb-2">
+          <div className="mb-5 sm:mb-6">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
               Place Name *
             </label>
             <input
               type="text"
               value={placeName}
               onChange={(e) => setPlaceName(e.target.value)}
-              className="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent"
+              className="w-full px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent text-sm sm:text-base"
               required
             />
           </div>
 
-          <div className="mb-4 sm:mb-6">
-            <label className="block text-sm font-medium text-gray-700 mb-1 sm:mb-2">
+          <div className="mb-5 sm:mb-6">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
               Description *
             </label>
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={5}
-              className="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent"
+              className="w-full px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent text-sm sm:text-base"
               placeholder="Describe this place in detail. Include what makes it special, best times to visit, etc."
               required
             />
@@ -634,14 +634,14 @@ const AddPlace = ({ language, setLanguage, languages }) => {
             </p>
           </div>
 
-          <div className="mb-4 sm:mb-6">
-            <label className="block text-sm font-medium text-gray-700 mb-1 sm:mb-2">
+          <div className="mb-5 sm:mb-6">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
               Category *
             </label>
             <select
               value={category}
               onChange={(e) => setCategory(e.target.value)}
-              className="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent"
+              className="w-full px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent text-sm sm:text-base"
               required
             >
               <option value="">
@@ -655,21 +655,21 @@ const AddPlace = ({ language, setLanguage, languages }) => {
             </select>
           </div>
 
-          <div className="mb-4 sm:mb-6">
-            <label className="block text-sm font-medium text-gray-700 mb-1 sm:mb-2">
+          <div className="mb-5 sm:mb-6">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
               Tags
             </label>
             <div className="flex flex-wrap gap-2 mb-2">
               {tags.map((tag) => (
                 <span
                   key={tag}
-                  className="bg-blue-100 text-blue-800 px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm flex items-center"
+                  className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-xs sm:text-sm flex items-center"
                 >
                   {tag}
                   <button
                     type="button"
                     onClick={() => handleRemoveTag(tag)}
-                    className="ml-1 sm:ml-2 text-blue-600 hover:text-blue-800"
+                    className="ml-2 text-blue-600 hover:text-blue-800"
                   >
                     <i className="fas fa-times"></i>
                   </button>
@@ -681,13 +681,13 @@ const AddPlace = ({ language, setLanguage, languages }) => {
                 type="text"
                 value={inputTag}
                 onChange={(e) => setInputTag(e.target.value)}
-                className="flex-1 px-3 py-2 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent"
+                className="flex-1 px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent text-sm sm:text-base"
                 placeholder="Add a tag"
               />
               <button
                 type="button"
                 onClick={handleAddTag}
-                className="bg-blue-600 text-white px-3 sm:px-4 py-2 text-sm sm:text-base rounded-md hover:bg-blue-700"
+                className="bg-blue-600 text-white px-3 sm:px-4 py-2 rounded-md hover:bg-blue-700 text-sm sm:text-base min-w-[70px]"
               >
                 Add
               </button>
@@ -697,8 +697,8 @@ const AddPlace = ({ language, setLanguage, languages }) => {
             )}
           </div>
 
-          <div className="mb-4 sm:mb-6">
-            <label className="block text-sm font-medium text-gray-700 mb-1 sm:mb-2">
+          <div className="mb-5 sm:mb-6">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
               Rating *
             </label>
             <div className="flex items-center">
@@ -707,17 +707,19 @@ const AddPlace = ({ language, setLanguage, languages }) => {
                   key={star}
                   type="button"
                   onClick={() => setRating(star)}
-                  className={`text-xl sm:text-2xl px-1 focus:outline-none bg-transparent`}
+                  className={`text-xl sm:text-2xl px-1 ${
+                    star <= rating ? 'text-yellow-400' : 'text-gray-300'
+                  }`}
                 >
-                  <i className={`${star <= rating ? 'fas' : 'far'} fa-star text-yellow-400`}></i>
+                  <i className="fas fa-star"></i>
                 </button>
               ))}
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 mb-6 sm:mb-8">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-6 sm:mb-8">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1 sm:mb-2">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
                 {language === 'hi' ? 'देश' : 'Country'} *
               </label>
               <select
@@ -727,7 +729,7 @@ const AddPlace = ({ language, setLanguage, languages }) => {
                   setState('');
                   setDistrict('');
                 }}
-                className="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent"
+                className="w-full px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent text-sm sm:text-base"
                 required
               >
                 <option value="">{language === 'hi' ? 'देश चुनें' : 'Select Country'}</option>
@@ -738,7 +740,7 @@ const AddPlace = ({ language, setLanguage, languages }) => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1 sm:mb-2">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
                 {language === 'hi' ? 'राज्य' : 'State'} *
               </label>
               {country === 'India' ? (
@@ -748,7 +750,7 @@ const AddPlace = ({ language, setLanguage, languages }) => {
                     setState(e.target.value);
                     setDistrict('');
                   }}
-                  className="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent"
+                  className="w-full px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent text-sm sm:text-base"
                   required
                 >
                   <option value="">{language === 'hi' ? 'राज्य चुनें' : 'Select State'}</option>
@@ -762,21 +764,21 @@ const AddPlace = ({ language, setLanguage, languages }) => {
                   value={state}
                   onChange={(e) => setState(e.target.value)}
                   placeholder={language === 'hi' ? 'राज्य दर्ज करें' : 'Enter state/province'}
-                  className="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent"
+                  className="w-full px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent text-sm sm:text-base"
                   required
                 />
               )}
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1 sm:mb-2">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
                 {language === 'hi' ? 'जिला' : 'District'} *
               </label>
               {country === 'India' && state ? (
                 <select
                   value={district}
                   onChange={(e) => setDistrict(e.target.value)}
-                  className="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent"
+                  className="w-full px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent text-sm sm:text-base"
                   required
                 >
                   <option value="">{language === 'hi' ? 'जिला चुनें' : 'Select District'}</option>
@@ -790,33 +792,33 @@ const AddPlace = ({ language, setLanguage, languages }) => {
                   value={district}
                   onChange={(e) => setDistrict(e.target.value)}
                   placeholder={language === 'hi' ? 'जिला दर्ज करें' : 'Enter district/city'}
-                  className="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent"
+                  className="w-full px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent text-sm sm:text-base"
                   required
                 />
               )}
             </div>
           </div>
 
-          <div className="flex flex-col sm:flex-row justify-end gap-3 sm:gap-4">
+          <div className="flex flex-col sm:flex-row sm:justify-end gap-3 sm:gap-4">
             <button
               type="button"
-              className="px-4 sm:px-6 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 text-sm sm:text-base order-2 sm:order-1"
+              className="w-full sm:w-auto order-2 sm:order-1 px-4 sm:px-6 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 text-sm sm:text-base"
               onClick={() => navigate(-1)}
             >
-              {language === 'hi' ? 'रद्द करें' : 'Cancel'}
+              Cancel
             </button>
             <button
               type="submit"
-              className="bg-blue-600 text-white px-4 sm:px-6 py-2 rounded-md hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed text-sm sm:text-base order-1 sm:order-2"
+              className="w-full sm:w-auto order-1 sm:order-2 bg-blue-600 text-white px-4 sm:px-6 py-2 rounded-md hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed text-sm sm:text-base"
               disabled={loading}
             >
               {loading ? (
                 <span className="flex items-center justify-center">
                   <i className="fas fa-spinner fa-spin mr-2"></i>
-                  {language === 'hi' ? 'सहेज रहा है...' : 'Saving...'}
+                  Saving...
                 </span>
               ) : (
-                language === 'hi' ? 'स्थान सहेजें' : 'Save Place'
+                'Save Place'
               )}
             </button>
           </div>
@@ -842,7 +844,7 @@ const AddPlace = ({ language, setLanguage, languages }) => {
         {renderDeleteModal()}
 
         {showSuccessMessage && (
-          <div className="fixed bottom-4 right-4 bg-green-500 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg shadow-lg text-sm sm:text-base max-w-[80%] sm:max-w-md">
+          <div className="fixed bottom-4 right-4 bg-green-500 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg shadow-lg text-sm sm:text-base">
             {editMode 
               ? (language === 'hi' ? 'स्थान सफलतापूर्वक अपडेट किया गया!' : 'Destination updated successfully!') 
               : (language === 'hi' ? 'स्थान सफलतापूर्वक जोड़ा गया!' : 'Destination added successfully!')}

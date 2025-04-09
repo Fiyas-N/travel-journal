@@ -85,6 +85,7 @@ const Recommend = ({ language, setLanguage, languages }) => {
   const [savedDestinations, setSavedDestinations] = useState([])
   const [doneFiltering, setDoneFiltering] = useState(false);
   const [isFetching, setIsFetching] = useState(true);
+  const [filterWarning, setFilterWarning] = useState(null);
   
   // Dropdown states
   const [isNumberDropdownOpen, setIsNumberDropdownOpen] = useState(false)
@@ -137,6 +138,7 @@ const Recommend = ({ language, setLanguage, languages }) => {
     try {
       setLoading(true);
       setError(null);
+      setFilterWarning(null);
 
       console.log('Fetching user preferences...');
       // First, get user preferences
@@ -162,9 +164,17 @@ const Recommend = ({ language, setLanguage, languages }) => {
           ratingCount = Object.keys(data.ratings).length;
         }
         
+        // Ensure all location fields exist (normalize data)
+        const country = data.country || 'Unknown';
+        const state = data.state || 'Unknown';
+        const district = data.district || 'Unknown';
+        
         return {
           id: doc.id,
           ...data,
+          country: country,
+          state: state, 
+          district: district,
           reviewCount: ratingCount,
           // Add translated category for display purposes
           translatedCategory: translateCategory(data.category, language)
@@ -284,6 +294,18 @@ const Recommend = ({ language, setLanguage, languages }) => {
         const ratingB = b.averageRating || b.rating || 0;
         return ratingB - ratingA;
       });
+
+      // Check if the places have location data for filtering
+      const placesWithCountry = fetchedPlaces.filter(place => place.country && place.country !== 'Unknown').length;
+      const placesWithState = fetchedPlaces.filter(place => place.state && place.state !== 'Unknown').length;
+      const placesWithDistrict = fetchedPlaces.filter(place => place.district && place.district !== 'Unknown').length;
+      
+      console.log(`Location data availability: ${placesWithCountry}/${fetchedPlaces.length} have country, ${placesWithState}/${fetchedPlaces.length} have state, ${placesWithDistrict}/${fetchedPlaces.length} have district`);
+      
+      // Set a warning if less than 50% of places have location data
+      if (placesWithCountry / fetchedPlaces.length < 0.5) {
+        setFilterWarning("Some destinations may not have location data, which could limit filtering options.");
+      }
 
       console.log('Final places array with similarity scores:', fetchedPlaces.length);
       setPlaces(fetchedPlaces);
@@ -433,24 +455,33 @@ const Recommend = ({ language, setLanguage, languages }) => {
     
     // Categorize places based on similarity score
     sortedPlaces.forEach(place => {
+      // Make sure we have all the required fields for this place
+      const placeWithAllFields = {
+        ...place,
+        country: place.country || 'Unknown',
+        state: place.state || 'Unknown',
+        district: place.district || 'Unknown',
+        rating: place.rating || place.averageRating || 0
+      };
+    
       // Exact score of 10 means preference match
       if (place.similarityScore === 10) {
         preferenceBased.push({
-          ...place,
+          ...placeWithAllFields,
           recommendationType: 'preference'
         });
       }
       // Scores 1-9 mean similarity match
       else if (place.similarityScore >= 1 && place.similarityScore <= 9) {
         similarityBased.push({
-          ...place,
+          ...placeWithAllFields,
           recommendationType: 'similarity'
         });
       }
       // Score of 0 means discovery
       else {
         discovery.push({
-          ...place,
+          ...placeWithAllFields,
           recommendationType: 'discovery'
         });
       }
@@ -489,38 +520,75 @@ const Recommend = ({ language, setLanguage, languages }) => {
     
     // First, get the categorized places using our consistent algorithm
     let categorizedPlaces = getFilteredPlaces(places, user.uid);
+    console.log(`Initial categorized places: ${categorizedPlaces.length}`);
     
     // Now apply the standard filters on top of the categorized places
     let filtered = [...categorizedPlaces];
+    const originalCount = filtered.length;
     
     // Apply category filter if not "all"
     if (selectedCategory !== 'all') {
+      const beforeCount = filtered.length;
       filtered = filtered.filter(place => place.category === selectedCategory);
+      console.log(`Category filter (${selectedCategory}): ${beforeCount} -> ${filtered.length}`);
     }
 
     // Apply country filter if selected
     if (selectedCountry && selectedCountry !== 'all') {
-      filtered = filtered.filter(place => place.country === selectedCountry);
+      const beforeCount = filtered.length;
+      filtered = filtered.filter(place => {
+        // For debugging
+        if (!place.country) {
+          console.log(`Place missing country: ${place.name || 'unnamed'} (ID: ${place.id})`);
+        }
+        return place.country === selectedCountry;
+      });
+      console.log(`Country filter (${selectedCountry}): ${beforeCount} -> ${filtered.length}`);
     }
 
     // Apply state filter if selected
     if (selectedState && selectedState !== 'all') {
-      filtered = filtered.filter(place => place.state === selectedState);
+      const beforeCount = filtered.length;
+      filtered = filtered.filter(place => {
+        // For debugging
+        if (!place.state) {
+          console.log(`Place missing state: ${place.name || 'unnamed'} (ID: ${place.id})`);
+        }
+        return place.state === selectedState;
+      });
+      console.log(`State filter (${selectedState}): ${beforeCount} -> ${filtered.length}`);
     }
 
     // Apply district filter if selected
     if (selectedDistrict && selectedDistrict !== 'all') {
-      filtered = filtered.filter(place => place.district === selectedDistrict);
+      const beforeCount = filtered.length;
+      filtered = filtered.filter(place => {
+        // For debugging
+        if (!place.district) {
+          console.log(`Place missing district: ${place.name || 'unnamed'} (ID: ${place.id})`);
+        }
+        return place.district === selectedDistrict;
+      });
+      console.log(`District filter (${selectedDistrict}): ${beforeCount} -> ${filtered.length}`);
     }
 
     // Apply rating filter
     if (minRating > 0) {
+      const beforeCount = filtered.length;
       filtered = filtered.filter(place => {
         const rating = place.averageRating || place.rating || 0;
         return rating >= minRating;
       });
+      console.log(`Rating filter (${minRating}+): ${beforeCount} -> ${filtered.length}`);
     }
 
+    // Set warning if filtering removed all or most results
+    if (filtered.length === 0 && originalCount > 0) {
+      // Don't set this warning here, as it would cause a re-render loop
+      // We'll handle it in a useEffect instead
+      console.log("All places filtered out - may need to adjust filters");
+    }
+    
     // Limit to selected number
     if (numRecommendations) {
       filtered = filtered.slice(0, parseInt(numRecommendations));
@@ -557,6 +625,17 @@ const Recommend = ({ language, setLanguage, languages }) => {
     }
   }, [filteredPlaces]);
 
+  // Add an effect to handle filter warnings without causing re-render loops
+  useEffect(() => {
+    if (filteredPlaces.length === 0 && places.length > 0) {
+      // Only show this warning if we have places but none match the filters
+      setFilterWarning("No destinations match your selected filters. Try adjusting your criteria.");
+    } else if (filterWarning && filteredPlaces.length > 0) {
+      // Clear the warning if we now have results
+      setFilterWarning(null);
+    }
+  }, [filteredPlaces.length, places.length, filterWarning]);
+
   // Create arrays of unique states and countries for the filter dropdowns
   const countries = ['all', ...getAllCountries()]
   
@@ -567,7 +646,23 @@ const Recommend = ({ language, setLanguage, languages }) => {
     } else if (selectedCountry === 'India') {
       return getAllStates();
     } else {
-      return getStatesForCountry(selectedCountry);
+      // Get predefined states if available
+      const predefinedStates = getStatesForCountry(selectedCountry);
+      
+      if (predefinedStates && predefinedStates.length > 0) {
+        return predefinedStates;
+      }
+      
+      // If no predefined states, extract from places data
+      const statesFromData = [...new Set(
+        places
+          .filter(place => place.country === selectedCountry)
+          .map(place => place.state)
+          .filter(Boolean)
+      )];
+      
+      console.log(`Extracted ${statesFromData.length} states from places data for ${selectedCountry}`);
+      return statesFromData;
     }
   }
   
@@ -578,16 +673,23 @@ const Recommend = ({ language, setLanguage, languages }) => {
     if (selectedState === 'all') {
       return [];
     } else if (selectedCountry === 'India') {
-      return getDistrictsForState(selectedState);
-    } else {
-      // For non-Indian states, get districts from the places data
-      return [...new Set(
+      const predefinedDistricts = getDistrictsForState(selectedState);
+      if (predefinedDistricts && predefinedDistricts.length > 0) {
+        return predefinedDistricts;
+      }
+    }
+    
+    // For any state (including Indian states with no predefined districts),
+    // get districts from the places data
+    const districtsFromData = [...new Set(
         places
           .filter(place => place.state === selectedState)
           .map(place => place.district)
           .filter(Boolean)
       )];
-    }
+    
+    console.log(`Extracted ${districtsFromData.length} districts from places data for ${selectedState}`);
+    return districtsFromData;
   }
   
   const districts = ['all', ...getAvailableDistricts()]
@@ -766,6 +868,24 @@ const Recommend = ({ language, setLanguage, languages }) => {
     }
   }, [language, places.length]);
 
+  // Add debug logging when filters change
+  useEffect(() => {
+    console.log("Filter changed - current filters:", { 
+      category: selectedCategory, 
+      country: selectedCountry,
+      state: selectedState,
+      district: selectedDistrict,
+      rating: minRating,
+      results: filteredPlaces.length
+    });
+    
+    // Log fields of first few places to verify filter fields
+    if (places.length > 0) {
+      console.log("Sample place data for debugging filters:");
+      console.log(places[0]);
+    }
+  }, [selectedCategory, selectedCountry, selectedState, selectedDistrict, minRating, filteredPlaces.length, places]);
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50">
@@ -839,6 +959,23 @@ const Recommend = ({ language, setLanguage, languages }) => {
               transition={{ duration: 0.3 }}
             >
               {error}
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <AnimatePresence>
+          {filterWarning && (
+        <motion.div 
+              className="mb-6 bg-yellow-50 border border-yellow-200 text-yellow-700 px-4 py-3 rounded-lg"
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.3 }}
+            >
+              <div className="flex items-start">
+                <i className="fas fa-exclamation-triangle text-yellow-600 mt-1 mr-2"></i>
+                <span>{filterWarning}</span>
+              </div>
             </motion.div>
           )}
         </AnimatePresence>

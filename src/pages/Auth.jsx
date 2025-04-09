@@ -1,11 +1,13 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { auth, db, storage } from '../firebase/config';
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile, sendPasswordResetEmail } from 'firebase/auth';
+import { auth, db } from '../firebase/config';
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile, sendPasswordResetEmail, PhoneAuthProvider, signInWithPhoneNumber } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { useNavigate, Link } from 'react-router-dom';
 import PropTypes from 'prop-types';
 import LoadingScreen from '../components/LoadingScreen';
+import PhoneInput from 'react-phone-number-input';
+import { isPossiblePhoneNumber, isValidPhoneNumber, parsePhoneNumber } from 'libphonenumber-js';
+import 'react-phone-number-input/style.css';
 
 const Auth = ({ language }) => {
   const navigate = useNavigate();
@@ -31,6 +33,9 @@ const Auth = ({ language }) => {
   const [forgotPasswordModal, setForgotPasswordModal] = useState(false);
   const [resetEmail, setResetEmail] = useState('');
   const [isResettingPassword, setIsResettingPassword] = useState(false);
+  const [phoneNumberValid, setPhoneNumberValid] = useState(false);
+  const [defaultCountry, setDefaultCountry] = useState('IN');
+  const [phoneFieldTouched, setPhoneFieldTouched] = useState(false);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -133,12 +138,41 @@ const Auth = ({ language }) => {
       
       console.log("User created successfully. Updating profile...");
       
-      // Instead of trying to upload the image now (which might fail due to CORS),
-      // we'll just update the profile with the name and create the Firestore document
+      // Default image to use if upload fails
+      let photoURL = 'https://public.readdy.ai/ai/img_res/4c15f5e4c75bf1c2c613684d79bd37c4.jpg';
       
-      // Update user profile with display name
+      // Upload profile image if one was selected
+      if (profileImage) {
+        try {
+          console.log("Processing profile image...");
+          
+          // Convert file to base64 string for Firestore
+          const reader = new FileReader();
+          reader.readAsDataURL(profileImage);
+          
+          await new Promise((resolve, reject) => {
+            reader.onload = () => {
+              photoURL = reader.result;
+              console.log("Profile image encoded as base64");
+              resolve();
+            };
+            reader.onerror = (error) => {
+              console.error("Error encoding image:", error);
+              reject(error);
+            };
+          });
+          
+          console.log("Profile image encoded successfully");
+        } catch (uploadError) {
+          console.error("Error processing profile image:", uploadError);
+          // Continue with account creation even if image processing fails
+        }
+      }
+      
+      // Update user profile with display name only (not photo URL)
       await updateProfile(userCredential.user, {
         displayName: formData.name
+        // Don't set photoURL to avoid "invalid-profile-attribute" error with large base64 strings
       });
       
       console.log("Creating Firestore document...");
@@ -153,19 +187,12 @@ const Auth = ({ language }) => {
           preferences: {
             tripTypes: formData.preferences
           },
-          // Use default image for now
-          profileImageUrl: 'https://public.readdy.ai/ai/img_res/4c15f5e4c75bf1c2c613684d79bd37c4.jpg',
+          profileImage: photoURL,
           bio: formData.additionalInfo,
+          savedDestinations: [],
           createdAt: new Date().toISOString()
         });
         console.log("Firestore document created successfully");
-        
-        // Show a message to the user that their account was created but image upload failed
-        if (profileImage) {
-          console.log("Note: Profile image couldn't be uploaded due to CORS restrictions in development environment.");
-          // This isn't shown to the user as we're navigating away, but can be useful for debugging
-        }
-        
       } catch (firestoreError) {
         console.error("Firestore error:", firestoreError);
         // Account has been created, so continue even if Firestore fails
@@ -230,66 +257,59 @@ const Auth = ({ language }) => {
   };
 
   const handleNextStep = () => {
-    console.log(`Attempting to move from step ${currentStep} to next step`);
-    let canProceed = true;
-    
+    // Basic form validation
     if (currentStep === 1) {
-      // Validate first step fields
-      if (!formData.name.trim()) {
-        setError(language === 'hi' ? 'नाम आवश्यक है' : 'Name is required');
-        canProceed = false;
-      } else if (!formData.email.trim()) {
-        setError(language === 'hi' ? 'ईमेल आवश्यक है' : 'Email is required');
-        canProceed = false;
-      } else if (!formData.password.trim() || formData.password.length < 6) {
-        setError(language === 'hi' ? 'पासवर्ड कम से कम 6 अक्षर का होना चाहिए' : 'Password must be at least 6 characters');
-        canProceed = false;
-      } else if (!formData.phone.trim()) {
-        setError(language === 'hi' ? 'फोन नंबर आवश्यक है' : 'Phone number is required');
-        canProceed = false;
+      if (!formData.name || !formData.email || !formData.password || !formData.phone) {
+        setError(language === 'hi' ? 'कृपया सभी आवश्यक फ़ील्ड भरें' : 'Please fill in all required fields');
+        return;
+      }
+      
+      // Validate phone number format
+      if (!phoneNumberValid) {
+        setError(language === 'hi' ? 'कृपया एक मान्य फोन नंबर दर्ज करें' : 'Please enter a valid phone number');
+        return;
+      }
+      
+      // Email format validation
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(formData.email)) {
+        setError(language === 'hi' ? 'कृपया एक मान्य ईमेल पता दर्ज करें' : 'Please enter a valid email address');
+        return;
+      }
+      
+      // Password length validation
+      if (formData.password.length < 6) {
+        setError(language === 'hi' ? 'पासवर्ड कम से कम 6 अक्षर का होना चाहिए' : 'Password must be at least 6 characters long');
+        return;
       }
     } else if (currentStep === 2) {
-      // Validate second step fields
-      if (!formData.location.trim()) {
-        setError(language === 'hi' ? 'स्थान आवश्यक है' : 'Location is required');
-        canProceed = false;
-      } else if (formData.preferences.length === 0) {
-        setError(language === 'hi' ? 'कम से कम एक यात्रा प्राथमिकता चुनें' : 'Select at least one travel preference');
-        canProceed = false;
+      if (!formData.location) {
+        setError(language === 'hi' ? 'कृपया अपना स्थान दर्ज करें' : 'Please enter your location');
+        return;
+      }
+      
+      if (formData.preferences.length === 0) {
+        setError(language === 'hi' ? 'कृपया कम से कम एक यात्रा प्राथमिकता चुनें' : 'Please select at least one travel preference');
+        return;
       }
     }
-    // Step 3 fields are optional, so no validation needed to proceed to submission
     
-    if (canProceed) {
-      setError('');
-      const newStep = currentStep + 1;
-      console.log(`Moving to step ${newStep}`);
-      setCurrentStep(newStep);
-    } else {
-      console.log("Cannot proceed to next step due to validation errors");
-    }
+    setError('');
+    setCurrentStep((prev) => Math.min(prev + 1, 3));
   };
 
   // Add a new handler specifically for the Create Account button
   const handleCreateAccountClick = () => {
-    console.log("Create Account button clicked");
-    
-    // Set a timeout to ensure we don't get stuck in loading state
-    const timeoutId = setTimeout(() => {
-      if (isSubmitting) {
-        console.log("Account creation timed out - resetting state");
-        setIsSubmitting(false);
-        setError(language === 'hi' 
-          ? 'खाता बनाने में बहुत समय लग रहा है। कृपया बाद में पुन: प्रयास करें।' 
-          : 'Account creation is taking too long. Please try again later.');
+    if (isSignUp) {
+      if (currentStep === 1) {
+        setCurrentStep(2);
+      } else {
+        handleCreateAccount();
       }
-    }, 30000); // 30 second timeout
-    
-    // Start the account creation process
-    handleCreateAccount();
-    
-    // Clean up timeout when the component unmounts
-    return () => clearTimeout(timeoutId);
+    } else {
+      // Navigate to the new step-based signup process
+      navigate('/auth-steps');
+    }
   };
 
   // Add the forgot password handler
@@ -349,6 +369,66 @@ const Auth = ({ language }) => {
     }
   };
 
+  // Detect user's country from browser language
+  useEffect(() => {
+    const detectCountry = () => {
+      try {
+        // Force default country to be India (IN)
+        setDefaultCountry('IN');
+        console.log('Default country set to India (IN)');
+        
+        // Keeping the browser language detection code commented for reference
+        // const browserLang = navigator.language || navigator.userLanguage || 'en-US';
+        // if (browserLang.includes('-')) {
+        //   const countryCode = browserLang.split('-')[1];
+        //   if (countryCode && countryCode.length === 2) {
+        //     setDefaultCountry(countryCode);
+        //     console.log('Detected country:', countryCode);
+        //   }
+        // }
+      } catch (error) {
+        console.error('Error setting default country:', error);
+        // Fallback to India if there's an error
+        setDefaultCountry('IN');
+      }
+    };
+    
+    detectCountry();
+  }, []);
+
+  // Initialize with India phone code
+  useEffect(() => {
+    if (isSignUp && !formData.phone) {
+      setFormData(prev => ({
+        ...prev,
+        phone: '+91'
+      }));
+    }
+  }, [isSignUp]);
+
+  // Handle phone number input and validation
+  const handlePhoneChange = (value) => {
+    // Mark field as touched when user changes it (except initial load)
+    if (!phoneFieldTouched && value !== '+91') {
+      setPhoneFieldTouched(true);
+    }
+    
+    // Update form data
+    setFormData(prev => ({
+      ...prev,
+      phone: value || ''
+    }));
+    
+    // Validate phone number
+    if (value) {
+      const isPossible = isPossiblePhoneNumber(value);
+      const isValid = isValidPhoneNumber(value);
+      setPhoneNumberValid(isPossible && isValid);
+    } else {
+      setPhoneNumberValid(false);
+    }
+  };
+
   useEffect(() => {
     // This effect ensures we don't get stuck in loading states
     // if the component unmounts during a submission
@@ -365,7 +445,7 @@ const Auth = ({ language }) => {
   }, [isSubmitting, isSigningIn]);
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="flex flex-col min-h-screen bg-gray-50">
       {/* Show loading screen overlay when signing in or submitting */}
       {(isSigningIn || isSubmitting) && (
         <LoadingScreen 
@@ -387,7 +467,8 @@ const Auth = ({ language }) => {
         />
       )}
 
-      <nav className="bg-white shadow-md fixed w-full top-0 z-50">
+      {/* Fixed navbar with shadow */}
+      <nav className="bg-white shadow fixed top-0 left-0 w-full z-50" style={{ height: "64px" }}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <Link to="/" className="flex items-center">
@@ -397,7 +478,11 @@ const Auth = ({ language }) => {
         </div>
       </nav>
 
-      <div className="flex-1 flex items-center justify-center px-4 py-12 mt-16 sm:mt-0">
+      {/* Create a placeholder div to compensate for fixed navbar height */}
+      <div style={{ height: "84px", width: "100%" }}></div>
+
+      {/* Add padding-top to account for fixed navbar */}
+      <div className="flex-1 flex items-center justify-center px-4 py-12 pt-40 mt-0">
         <div className="bg-white rounded-xl shadow-xl w-full max-w-xl p-4 sm:p-8">
           {error && (
             <div className="mb-4 bg-red-50 border border-red-200 text-red-600 px-3 py-2 sm:px-4 sm:py-3 rounded-lg text-sm sm:text-base">
@@ -437,22 +522,22 @@ const Auth = ({ language }) => {
                     {language === 'hi' ? 'पासवर्ड' : 'Password'}
                   </label>
                   <div className="relative">
-                    <input
-                      type={showPassword ? 'text' : 'password'}
-                      name="password"
-                      value={formData.password}
-                      onChange={handleInputChange}
-                      className="mt-1 block w-full px-3 py-2 text-base sm:text-sm border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-                      required
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    name="password"
+                    value={formData.password}
+                    onChange={handleInputChange}
+                    className="mt-1 block w-full px-3 py-2 text-base sm:text-sm border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
                       className="absolute right-3 top-1/2 -translate-y-1/2 touch-manipulation bg-transparent hover:text-gray-700 transition-colors p-1.5 rounded-full"
                       aria-label={showPassword ? "Hide password" : "Show password"}
-                    >
+                  >
                       <i className={`fas ${showPassword ? 'fa-eye-slash' : 'fa-eye'} text-gray-400 text-lg sm:text-base group-hover:text-gray-600`}></i>
-                    </button>
+                  </button>
                   </div>
                 </div>
 
@@ -479,7 +564,7 @@ const Auth = ({ language }) => {
                     {language === 'hi' ? 'पासवर्ड भूल गए?' : 'Forgot password?'}
                   </button>
                 </div>
-                
+
                 <button
                   type="button" 
                   onClick={handleSignIn}
@@ -560,36 +645,57 @@ const Auth = ({ language }) => {
                         {language === 'hi' ? 'पासवर्ड' : 'Password'}
                       </label>
                       <div className="relative">
-                        <input
-                          type={showPassword ? 'text' : 'password'}
-                          name="password"
-                          value={formData.password}
-                          onChange={handleInputChange}
-                          className="mt-1 block w-full px-3 py-2 text-base sm:text-sm border border-gray-300 rounded-md"
-                          required
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setShowPassword(!showPassword)}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 touch-manipulation bg-transparent hover:text-gray-700 transition-colors p-1.5 rounded-full"
-                          aria-label={showPassword ? "Hide password" : "Show password"}
-                        >
-                          <i className={`fas ${showPassword ? 'fa-eye-slash' : 'fa-eye'} text-gray-400 text-lg sm:text-base group-hover:text-gray-600`}></i>
-                        </button>
-                      </div>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700">
-                        {language === 'hi' ? 'फोन नंबर' : 'Phone Number'}
-                      </label>
                       <input
-                        type="tel"
-                        name="phone"
-                        value={formData.phone}
+                        type={showPassword ? 'text' : 'password'}
+                        name="password"
+                        value={formData.password}
                         onChange={handleInputChange}
                         className="mt-1 block w-full px-3 py-2 text-base sm:text-sm border border-gray-300 rounded-md"
                         required
                       />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 touch-manipulation bg-transparent hover:text-gray-700 transition-colors p-1.5 rounded-full"
+                          aria-label={showPassword ? "Hide password" : "Show password"}
+                      >
+                          <i className={`fas ${showPassword ? 'fa-eye-slash' : 'fa-eye'} text-gray-400 text-lg sm:text-base group-hover:text-gray-600`}></i>
+                      </button>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 flex items-center">
+                        {language === 'hi' ? 'फोन नंबर' : 'Phone Number'}
+                        {phoneNumberValid && (
+                          <span className="valid-phone-indicator ml-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4 mr-1">
+                              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                            </svg>
+                            {language === 'hi' ? 'मान्य' : 'Valid'}
+                          </span>
+                        )}
+                      </label>
+                      <div className={`phone-input-container ${phoneNumberValid ? 'valid' : formData.phone ? 'invalid' : ''}`}>
+                        <PhoneInput
+                          international
+                          defaultCountry="IN"
+                          key="phone-input-IN" 
+                          value={formData.phone || '+91'}
+                          onChange={handlePhoneChange}
+                          countryCallingCodeEditable={true}
+                          className="mt-1 block w-full"
+                          smartCaret={true}
+                          limitMaxLength={true}
+                          withCountryCallingCode={true}
+                          autoComplete="tel"
+                        />
+                      </div>
+                      {formData.phone && !phoneNumberValid && phoneFieldTouched && (
+                        <p className="text-red-500 text-xs mt-1">
+                          <i className="fas fa-exclamation-circle mr-1"></i>
+                          {language === 'hi' ? 'कृपया एक मान्य फोन नंबर दर्ज करें' : 'Please enter a valid phone number'}
+                        </p>
+                      )}
                     </div>
                   </div>
                 )}
@@ -661,7 +767,7 @@ const Auth = ({ language }) => {
                             </svg>
                           </div>
                         )}
-                        <input
+                      <input
                           type="file"
                           accept="image/*"
                           onChange={handleImageChange}
@@ -706,20 +812,27 @@ const Auth = ({ language }) => {
                     <button
                       type="button"
                       onClick={handleNextStep}
-                      className="!rounded-button whitespace-nowrap bg-blue-600 text-white py-3 sm:py-2 px-4 text-base sm:text-sm hover:bg-blue-700 touch-manipulation flex-1 sm:flex-none ml-auto"
+                      className={`ml-auto px-5 py-2.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors ${
+                        (currentStep === 1 && (!formData.name || !formData.email || !formData.password || !formData.phone || !phoneNumberValid)) ||
+                        (currentStep === 2 && (!formData.location || formData.preferences.length === 0))
+                          ? 'opacity-50 cursor-not-allowed' 
+                          : ''
+                      }`}
+                      disabled={
+                        (currentStep === 1 && (!formData.name || !formData.email || !formData.password || !formData.phone || !phoneNumberValid)) ||
+                        (currentStep === 2 && (!formData.location || formData.preferences.length === 0))
+                      }
                     >
                       {language === 'hi' ? 'अगला' : 'Next'}
                     </button>
                   ) : (
                     <button
-                      type="button" 
-                      onClick={handleCreateAccountClick}
+                      type="button"
+                      onClick={handleCreateAccount}
+                      className="ml-auto px-5 py-2.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
                       disabled={isSubmitting}
-                      className="!rounded-button whitespace-nowrap bg-blue-600 text-white py-3 sm:py-2 px-4 text-base sm:text-sm hover:bg-blue-700 touch-manipulation flex-1 sm:flex-none ml-auto"
                     >
-                      {isSubmitting 
-                        ? (language === 'hi' ? 'खाता बन रहा है...' : 'Creating Account...') 
-                        : (language === 'hi' ? 'खाता बनाएं' : 'Create Account')}
+                      {isSubmitting ? (language === 'hi' ? 'खाता बना रहा है...' : 'Creating Account...') : (language === 'hi' ? 'खाता बनाएं' : 'Create Account')}
                     </button>
                   )}
                 </div>

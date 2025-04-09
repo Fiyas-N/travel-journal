@@ -8,6 +8,7 @@ import { motion } from 'framer-motion'
 import { getReviewCount } from '../utils/ratings'
 import translations from '../utils/translations'
 import LoadingScreen from '../components/LoadingScreen'
+import { signOut, updateProfile } from 'firebase/auth'
 
 const Profile = ({ language, setLanguage, languages }) => {
   const navigate = useNavigate()
@@ -56,9 +57,13 @@ const Profile = ({ language, setLanguage, languages }) => {
       const userDoc = await getDoc(doc(db, 'users', auth.currentUser.uid))
       if (userDoc.exists()) {
         const userData = userDoc.data()
+        // Use profileImage field and fallback to default if not available
+        const defaultProfileImage = 'https://public.readdy.ai/ai/img_res/4c15f5e4c75bf1c2c613684d79bd37c4.jpg';
+        
         setProfile({
           ...profile,
-          ...userData
+          ...userData,
+          profileImage: userData.profileImage || defaultProfileImage
         })
         
         // Fetch bookmarked destinations
@@ -179,15 +184,31 @@ const Profile = ({ language, setLanguage, languages }) => {
     }
 
     try {
-      const compressedImage = await compressImage(file)
+      setLoading(true);
+      
+      // Compress the image first
+      const compressedImageDataUrl = await compressImage(file)
+      
+      // Store the base64 data URL directly
+      const imageDataUrl = compressedImageDataUrl;
+      
+      // Update profile state
       setProfile(prev => ({
         ...prev,
-        profileImage: compressedImage
+        profileImage: imageDataUrl
       }))
+      
+      // Update Firestore document with the new image
+      await updateDoc(doc(db, 'users', auth.currentUser.uid), {
+        profileImage: imageDataUrl
+      });
+      
       setError(null)
+      setLoading(false)
     } catch (err) {
       console.error('Error processing image:', err)
-      setError('Failed to process image')
+      setError('Failed to process and upload image')
+      setLoading(false)
     }
   }
 
@@ -207,14 +228,35 @@ const Profile = ({ language, setLanguage, languages }) => {
     if (!auth.currentUser) return
 
     try {
-      await updateDoc(doc(db, 'users', auth.currentUser.uid), {
-        ...profile
-      })
+      setLoading(true);
+      
+      // Create the update object
+      const updateData = {
+        name: profile.name,
+        location: profile.location,
+        bio: profile.bio,
+        profileImage: profile.profileImage,
+        preferences: profile.preferences,
+        // Make sure to include other fields you want to preserve
+        phone: profile.phone,
+        email: profile.email
+      };
+      
+      // Update Firestore
+      await updateDoc(doc(db, 'users', auth.currentUser.uid), updateData);
+      
+      // Update Auth profile - only update displayName to avoid Firebase error
+      await updateProfile(auth.currentUser, {
+        displayName: profile.name
+      });
+      
       setIsEditing(false)
       setError(null)
+      setLoading(false)
     } catch (err) {
       console.error('Error updating profile:', err)
       setError('Failed to update profile')
+      setLoading(false)
     }
   }
 

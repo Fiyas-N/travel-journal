@@ -11,12 +11,64 @@ body {
   background-color: #f5f5f5;
   color: #333;
   line-height: 1.6;
+  padding-top: 0; /* Removed 64px padding */
+}
+
+/* Main content container padding - REMOVED */
+main, .content-wrapper, .min-h-screen {
+  padding-top: 0;
+}
+
+/* Page container styles - REMOVED */
+.page-container {
+  padding-top: 0;
+  min-height: calc(100vh - 64px);
+}
+
+/* Auth page specific spacing - Fixed for sign-up form */
+.auth-container,
+[data-page-type="auth"],
+#firebaseui-auth-container,
+.firebaseui-container,
+.firebase-auth-container,
+div[role="presentation"] > div {
+  margin-top: 100px !important;
+  padding-top: 20px !important;
+}
+
+/* Target the auth card/dialog directly - Adjusted for auth pages */
+.firebaseui-card-content,
+.firebaseui-card-footer,
+div[role="dialog"] {
+  margin-top: 16px !important;
 }
 
 /* Fix z-index issues with map controls */
 .leaflet-top,
 .leaflet-bottom {
   z-index: 999 !important;
+}
+
+/* Navbar height and positioning */
+nav.fixed {
+  height: 64px;
+}
+
+/* Adjust spacing for components that appear below navbar - REDUCED */
+.flex-col.min-h-screen {
+  padding-top: 0 !important;
+}
+
+/* Ensure sign-in form appears below the navbar with proper spacing - REDUCED */
+.flex-1.flex.items-center.justify-center {
+  padding-top: 1rem !important;
+}
+
+/* Auth container positioning fix - INCREASED spacing */
+.auth-container {
+  margin-top: 100px !important;
+  padding-top: 20px !important;
+  position: relative !important;
 }
 
 /* Global button styles */
@@ -30,13 +82,6 @@ input,
 textarea,
 select {
   font-family: inherit;
-}
-
-/* Container for main content */
-.app {
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
 }
 
 /* Loading state */
@@ -71,4 +116,355 @@ select {
   transition-property: all;
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
   transition-duration: 300ms;
+}
+
+/* Phone Input Styles */
+.phone-input-container {
+  position: relative;
+  width: 100%;
+  margin-bottom: 15px;
+}
+
+.phone-input-container.valid .PhoneInputInput {
+  border-color: #38a169;
+  box-shadow: 0 0 0 1px rgba(56, 161, 105, 0.2);
+}
+
+.phone-input-container.invalid .PhoneInputInput {
+  border-color: #e53e3e;
+  box-shadow: 0 0 0 1px rgba(229, 62, 62, 0.2);
+}
+
+.PhoneInput {
+  display: flex !important;
+  align-items: center !important;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  overflow: hidden;
+  height: 48px;
+  position: relative;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+  width: 100%;
+}
+
+.PhoneInput:hover {
+  border-color: #a0aec0;
+}
+
+.PhoneInput:focus-within {
+  border-color: #3182ce;
+  box-shadow: 0 0 0 2px rgba(49, 130, 206, 0.2);
+}
+
+.PhoneInput::before {
+  display: none;
+}
+
+.PhoneInputInput {
+  flex: 1;
+  width: 100%;
+  padding: 0.75rem;
+  border: none;
+  font-size: 16px;
+  outline: none;
+  height: 100%;
+  background-color: transparent;
+}
+
+.PhoneInputInput:focus {
+  outline: none;
+}
+
+.phone-input-container.valid .PhoneInput {
+  border-color: #38a169;
+  box-shadow: 0 0 0 1px rgba(56, 161, 105, 0.2);
+}
+
+.phone-input-container.invalid .PhoneInput {
+  border-color: #e53e3e;
+  box-shadow: 0 0 0 1px rgba(229, 62, 62, 0.2);
+}
+
+.PhoneInputCountry {
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  background-color: transparent;
+  cursor: pointer;
+  height: 100%;
+  min-width: 80px;
+  position: relative;
+  transition: background-color 0.2s ease;
+}
+
+.PhoneInputCountry:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.PhoneInputCountryIcon {
+  width: 22px;
+  height: 16px;
+  margin-right: 8px;
+  border-radius: 2px;
+  overflow: hidden;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s ease;
+}
+
+.PhoneInputCountry:hover .PhoneInputCountryIcon {
+  transform: scale(1.1);
+}
+
+.PhoneInputCountrySelectArrow {
+  margin-left: 8px;
+  width: 0;
+  height: 0;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-top: 5px solid #666;
+  transition: transform 0.2s ease;
+}
+
+.PhoneInputCountry:hover .PhoneInputCountrySelectArrow {
+  transform: translateY(2px);
+}
+
+.PhoneInputCountrySelect {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 100%;
+  z-index: 1;
+  border: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+/* New custom country select styles */
+.country-select-custom-wrapper {
+  display: flex;
+  align-items: center;
+  height: 100%;
+  padding: 0 12px;
+  cursor: pointer;
+  background-color: rgba(245, 247, 249, 0.5);
+  border-right: 1px solid #ddd;
+  min-width: 90px;
+  transition: background-color 0.2s ease;
+}
+
+.country-select-custom-wrapper:hover {
+  background-color: #e9ecef;
+}
+
+.country-flag-display {
+  display: flex;
+  align-items: center;
+}
+
+.country-flag-display img {
+  border-radius: 2px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.custom-arrow {
+  margin-left: 8px;
+  transition: transform 0.2s ease;
+}
+
+.custom-arrow.open {
+  transform: rotate(180deg);
+}
+
+/* Phone guidance text */
+.phone-guidance {
+  color: #718096;
+  font-size: 0.75rem;
+  margin-bottom: 0.5rem;
+  font-style: italic;
+}
+
+/* Valid phone indicator */
+.valid-phone-indicator {
+  display: inline-flex;
+  align-items: center;
+  color: #38a169;
+  font-size: 0.75rem;
+  margin-left: 0.5rem;
+  background-color: rgba(56, 161, 105, 0.1);
+  padding: 0.2rem 0.5rem;
+  border-radius: 9999px;
+  animation: fadeIn 0.3s ease;
+}
+
+.valid-phone-indicator svg {
+  width: 14px;
+  height: 14px;
+  margin-right: 3px;
+}
+
+/* OTP Input styles */
+.otp-input-container {
+  position: relative;
+}
+
+#otp {
+  letter-spacing: 0.5rem;
+  text-align: center;
+  font-size: 1.25rem;
+  transition: all 0.3s ease;
+  caret-color: #3b82f6;
+  font-family: 'Courier New', monospace;
+  font-weight: bold;
+  padding: 1rem 0.5rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+#otp:focus {
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+  border-color: #3b82f6;
+  outline: none;
+}
+
+#otp::placeholder {
+  letter-spacing: 0.5rem;
+  color: #cbd5e0;
+}
+
+/* Create a visual digit separators effect */
+.otp-display {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 8px;
+}
+
+.otp-digit {
+  width: 40px;
+  height: 40px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  font-weight: 600;
+  background-color: white;
+  transition: all 0.2s ease;
+}
+
+.otp-digit.filled {
+  border-color: #3b82f6;
+  background-color: #ebf4ff;
+}
+
+/* RecaptchaVerifier container */
+#recaptcha-container {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 1rem;
+  min-height: 80px;
+}
+
+/* Verified badge styles */
+.verified-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.5rem;
+  background-color: #d1fae5;
+  color: #059669;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  margin-left: 0.5rem;
+}
+
+.verified-badge svg {
+  width: 0.875rem;
+  height: 0.875rem;
+  margin-right: 0.25rem;
+}
+
+/* Stepped Auth Form Styles */
+.phone-valid .PhoneInput {
+  border-color: #38a169 !important;
+  box-shadow: 0 0 0 1px rgba(56, 161, 105, 0.2) !important;
+}
+
+.phone-invalid .PhoneInput {
+  border-color: #e53e3e !important;
+  box-shadow: 0 0 0 1px rgba(229, 62, 62, 0.2) !important;
+}
+
+/* Custom Phone Input Styles */
+.custom-phone-input-wrapper .PhoneInput {
+  display: flex;
+  align-items: center;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  overflow: hidden;
+  height: 48px;
+}
+
+.custom-phone-input-wrapper .PhoneInputCountry {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #f5f7f9;
+  padding: 0 12px;
+  height: 100%;
+  border-right: 1px solid #ddd;
+  min-width: 85px;
+  position: relative;
+}
+
+.custom-phone-input-wrapper .PhoneInputCountryIcon {
+  width: 24px;
+  height: 16px;
+  margin-right: 8px;
+}
+
+.custom-phone-input-wrapper .PhoneInputCountrySelectArrow {
+  margin-left: 8px;
+  width: 0;
+  height: 0;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-top: 5px solid #666;
+}
+
+.custom-phone-input-wrapper .PhoneInputInput {
+  flex: 1;
+  border: none;
+  outline: none;
+  height: 100%;
+  padding: 0 12px;
+  font-size: 16px;
+}
+
+/* Add a visual hint to tell users the country selector is clickable */
+.custom-phone-input-wrapper .PhoneInputCountry::after {
+  content: "⌄";
+  position: absolute;
+  right: 10px;
+  font-size: 14px;
+  color: #666;
+}
+
+.custom-phone-input-wrapper .PhoneInputCountrySelect {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 100%;
+  z-index: 1;
+  border: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+/* Box shadow for auth cards */
+.bg-white.rounded-xl.shadow-xl {
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
 } 
