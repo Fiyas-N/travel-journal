@@ -1,0 +1,156 @@
+/* Clean, elegant loading animations optimized for performance */
+
+/* Spin animation with hardware acceleration */
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin {
+  animation: spin 1.5s cubic-bezier(0.5, 0.1, 0.5, 1) infinite;
+  will-change: transform;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
+/* Subtle pulse animation for text elements - reduced on mobile */
+@keyframes pulse-text {
+  0% {
+    opacity: 0.8;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.8;
+  }
+}
+
+.animate-pulse-text {
+  animation: pulse-text 2s ease-in-out infinite;
+}
+
+/* Gentle globe rotation - less intense on mobile */
+@keyframes globe-rotate {
+  0% {
+    transform: rotate(0deg);
+  }
+  25% {
+    transform: rotate(8deg);
+  }
+  75% {
+    transform: rotate(-8deg);
+  }
+  100% {
+    transform: rotate(0deg);
+  }
+}
+
+.animate-globe {
+  animation: globe-rotate 4s ease-in-out infinite;
+  display: inline-block;
+  transform-origin: center;
+  will-change: transform;
+  transform: translateZ(0);
+}
+
+/* Performance optimized pulse animation */
+.animate-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+/* Soft pulse animation - simplified for mobile */
+@keyframes pulse-soft {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.03);
+  }
+}
+
+.animate-pulse-soft {
+  animation: pulse-soft 2s ease-in-out infinite;
+  will-change: transform;
+  transform: translateZ(0);
+}
+
+/* Map pin indicator animations - optimized */
+.animate-ripple {
+  animation: ripple 1.5s infinite;
+  border-radius: 50%;
+  will-change: box-shadow;
+}
+
+@keyframes ripple {
+  0% {
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.3);
+  }
+  100% {
+    box-shadow: 0 0 0 8px rgba(59, 130, 246, 0);
+  }
+}
+
+/* Minimalist shimmer effect - GPU accelerated */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.animate-shimmer {
+  background: linear-gradient(90deg, 
+    rgba(243, 244, 246, 0.5) 0%, 
+    rgba(255, 255, 255, 1) 50%, 
+    rgba(243, 244, 246, 0.5) 100%);
+  background-size: 200% 100%;
+  animation: shimmer 3s infinite;
+  will-change: background-position;
+  transform: translateZ(0);
+}
+
+/* Add a media query to reduce animation complexity on small devices */
+@media (max-width: 640px) {
+  .animate-spin {
+    animation-duration: 2s; /* Slightly slower for less CPU usage */
+  }
+  
+  .animate-ripple {
+    animation-duration: 2s; /* Slower ripple effect */
+  }
+  
+  .animate-shimmer {
+    animation-duration: 4s; /* Slower shimmer effect */
+  }
+  
+  @keyframes globe-rotate {
+    0% {
+      transform: rotate(0deg);
+    }
+    25% {
+      transform: rotate(5deg); /* Reduced rotation angle */
+    }
+    75% {
+      transform: rotate(-5deg); /* Reduced rotation angle */
+    }
+    100% {
+      transform: rotate(0deg);
+    }
+  }
+} 

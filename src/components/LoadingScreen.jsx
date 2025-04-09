@@ -1,9 +1,12 @@
-import React from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import PropTypes from 'prop-types';
 import translations from '../utils/translations';
+import '../styles/loading-animations.css';
 
 /**
- * Animated loading screen component to be used across the application
+ * Enhanced loading screen component with travel theme and dynamic animations
+ * Simplified for a cleaner, more elegant design
+ * Optimized for both desktop and mobile devices with performance enhancements
  * @param {Object} props - Component props
  * @param {string} props.language - Current language for translations
  * @param {string} [props.size='default'] - Size of the loader (small, default, large)
@@ -12,59 +15,107 @@ import translations from '../utils/translations';
  */
 const LoadingScreen = ({ language, size = 'default', message, type = 'fullpage' }) => {
   const t = translations[language] || translations.en;
+  const [dots, setDots] = useState(['•']);
+  const [isMobile, setIsMobile] = useState(false);
   
-  // Determine size classes for loader
-  const sizeClasses = {
-    small: 'w-6 h-6 sm:w-8 sm:h-8 border-2',
-    default: 'w-10 h-10 sm:w-12 sm:h-12 border-2 sm:border-3',
-    large: 'w-12 h-12 sm:w-16 sm:h-16 border-3 sm:border-4',
-  }[size] || 'w-10 h-10 sm:w-12 sm:h-12 border-2 sm:border-3';
+  // Detect mobile devices for performance optimization
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 640);
+    };
+    
+    // Check initially
+    checkMobile();
+    
+    // Add event listener for window resize
+    window.addEventListener('resize', checkMobile);
+    
+    // Cleanup
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+  
+  // Optimize dot animation interval for mobile
+  useEffect(() => {
+    const intervalDuration = isMobile ? 800 : 600; // Slower on mobile
+    
+    const intervalId = setInterval(() => {
+      setDots(prevDots => {
+        if (prevDots.length >= 3) return ['•'];
+        return [...prevDots, '•'];
+      });
+    }, intervalDuration);
+    
+    return () => clearInterval(intervalId);
+  }, [isMobile]);
+  
+  // Memoize size classes to prevent recalculation
+  const sizeClasses = useMemo(() => {
+    return {
+      small: 'w-12 h-12 md:w-16 md:h-16',
+      default: 'w-16 h-16 md:w-20 md:h-20',
+      large: 'w-20 h-20 md:w-24 md:h-24',
+    }[size] || 'w-16 h-16 md:w-20 md:h-20';
+  }, [size]);
 
-  // Determine text size based on loader size
-  const textClasses = {
-    small: 'text-xs sm:text-sm',
-    default: 'text-sm sm:text-base',
-    large: 'text-base sm:text-lg',
-  }[size] || 'text-sm sm:text-base';
+  // Memoize container classes to prevent recalculation
+  const containerClasses = useMemo(() => {
+    return {
+      fullpage: 'fixed inset-0 z-50 flex items-center justify-center bg-white px-4',
+      inline: 'flex flex-col items-center justify-center py-4 md:py-6',
+      overlay: 'absolute inset-0 z-40 flex items-center justify-center bg-white bg-opacity-90 px-4',
+    }[type] || 'fixed inset-0 z-50 flex items-center justify-center bg-white px-4';
+  }, [type]);
 
-  // Determine container classes based on type
-  const containerClasses = {
-    fullpage: 'fixed inset-0 z-50 flex flex-col items-center justify-center bg-white bg-opacity-90 safe-padding-bottom',
-    inline: 'flex flex-col items-center justify-center py-6 sm:py-8',
-    overlay: 'absolute inset-0 z-40 flex flex-col items-center justify-center bg-black bg-opacity-50',
-  }[type] || 'fixed inset-0 z-50 flex flex-col items-center justify-center bg-white bg-opacity-90';
+  const loadingMessage = message || t.loading || 'Loading';
 
-  const loadingMessage = message || t.loading || 'Loading...';
+  // Memoize font size for compass to avoid recomputation
+  const compassSize = useMemo(() => {
+    if (isMobile) {
+      return size === 'small' ? '0.875rem' : size === 'large' ? '1.5rem' : '1.125rem';
+    } else {
+      return size === 'small' ? '1rem' : size === 'large' ? '1.75rem' : '1.25rem';
+    }
+  }, [size, isMobile]);
 
   return (
     <div className={containerClasses}>
-      <div className="flex flex-col items-center">
-        {/* Spinner animation */}
-        <div className={`${sizeClasses} rounded-full border-blue-500 border-t-transparent animate-spin`} role="status" aria-label="Loading"></div>
+      <div className="flex flex-col items-center p-4 md:p-5 max-w-xs text-center">
+        {/* Simplified brand presentation with globe icon - responsive text size */}
+        <div className="mb-4 md:mb-6 text-xl md:text-2xl font-medium text-blue-500">
+          <span className="inline-block mr-2">
+            <i className="fas fa-globe-americas animate-globe"></i>
+          </span>
+          {t.travelJournal || 'Travel Journal'}
+        </div>
         
-        {/* Text below spinner */}
-        <div className="mt-3 sm:mt-4 text-center">
-          <p className={`${textClasses} font-medium text-gray-700`}>{loadingMessage}</p>
+        {/* Clean minimalist loader with subtle effects */}
+        <div className={`${sizeClasses} mb-4 md:mb-6 relative`}>
+          <div className="absolute inset-0 rounded-full border-4 border-gray-100">
+            <div className="absolute top-0 left-0 w-full h-full rounded-full border-4 border-t-blue-500 border-r-transparent border-b-transparent border-l-transparent animate-spin"></div>
+          </div>
           
-          {/* Optional animated dots */}
-          <div className="mt-1 sm:mt-2 flex space-x-1 justify-center">
-            <div className="w-1 h-1 sm:w-1.5 sm:h-1.5 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-            <div className="w-1 h-1 sm:w-1.5 sm:h-1.5 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-            <div className="w-1 h-1 sm:w-1.5 sm:h-1.5 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+          {/* Simplified compass animation - responsive font size */}
+          <div className="absolute inset-0 flex items-center justify-center opacity-50">
+            <i className="fas fa-compass text-blue-500" style={{ fontSize: compassSize }}></i>
           </div>
         </div>
-      </div>
-      
-      {/* For fullpage loaders, add a small hint about what's happening */}
-      {type === 'fullpage' && (
-        <div className="absolute bottom-4 sm:bottom-6 left-0 right-0 text-center">
-          <p className="text-xs sm:text-sm text-gray-400">
-            {language === 'hi' ? 'कृपया प्रतीक्षा करें...' : 
-             language === 'ml' ? 'ദയവായി കാത്തിരിക്കുക...' : 
-             'Please wait a moment...'}
+        
+        {/* Simplified loading text with dots - responsive text size */}
+        <div>
+          <p className="text-base md:text-lg font-medium text-gray-700 mb-2">
+            {loadingMessage}
+            <span className="ml-1 text-blue-500">
+              {dots.join('')}
+            </span>
+          </p>
+          
+          {/* Simple secondary message - responsive text size */}
+          <p className="text-xs md:text-sm text-gray-500 animate-pulse-text">
+            <i className="fas fa-map-marker-alt mr-1 md:mr-2 text-red-500"></i>
+            {t.discoveringWorld || 'Discovering the world for you...'}
           </p>
         </div>
-      )}
+      </div>
     </div>
   );
 };
