@@ -35,6 +35,8 @@ const DestinationDetails = ({ language, setLanguage, languages, user }) => {
   const [showShortcutsInfo, setShowShortcutsInfo] = useState(false)
   const [modalImageLoaded, setModalImageLoaded] = useState(false)
   const [modalImageError, setModalImageError] = useState(false)
+  const [editingComment, setEditingComment] = useState(null)
+  const [editCommentText, setEditCommentText] = useState('')
 
   // Get translations for the current language
   const t = translations[language] || translations.en
@@ -414,6 +416,34 @@ const DestinationDetails = ({ language, setLanguage, languages, user }) => {
     }
   };
 
+  const handleEditComment = (comment) => {
+    setEditingComment(comment);
+    setEditCommentText(comment.text);
+  };
+
+  const handleSaveEditedComment = async () => {
+    if (!user || !editingComment) return;
+    
+    try {
+      const commentRef = doc(db, 'comments', editingComment.id);
+      
+      await updateDoc(commentRef, {
+        text: editCommentText,
+        updatedAt: new Date().toISOString()
+      });
+      
+      // Reset editing state
+      setEditingComment(null);
+      setEditCommentText('');
+      
+      // Refresh comments to update UI
+      fetchComments();
+    } catch (err) {
+      console.error('Error updating comment:', err);
+      setError('Failed to update comment. Please try again.');
+    }
+  };
+
   const handleCommentLike = async (commentId) => {
     if (!user) {
       setShowLoginModal(true)
@@ -622,19 +652,60 @@ const DestinationDetails = ({ language, setLanguage, languages, user }) => {
                         <div className="flex items-center space-x-2 flex-shrink-0">
                           <span className="text-xs sm:text-sm text-gray-500">
                             {new Date(comment.createdAt).toLocaleDateString()}
+                            {comment.updatedAt && ` (${t.edited || 'Edited'})`}
                           </span>
                           {user && comment.userId === user.uid && (
-                            <button
-                              onClick={() => handleDeleteComment(comment.id)}
-                              className="text-red-500 hover:text-red-700 transition-colors p-1 rounded-full hover:bg-red-50"
-                              title={t.delete}
-                            >
-                              <i className="fas fa-trash-alt text-xs sm:text-sm"></i>
-                            </button>
+                            <>
+                              <button
+                                onClick={() => handleEditComment(comment)}
+                                className="text-blue-500 hover:text-blue-700 transition-colors p-1 rounded-full hover:bg-blue-50"
+                                title={t.editComment || "Edit"}
+                              >
+                                <i className="fas fa-edit text-xs sm:text-sm"></i>
+                              </button>
+                              <button
+                                onClick={() => handleDeleteComment(comment.id)}
+                                className="text-red-500 hover:text-red-700 transition-colors p-1 rounded-full hover:bg-red-50"
+                                title={t.delete}
+                              >
+                                <i className="fas fa-trash-alt text-xs sm:text-sm"></i>
+                              </button>
+                            </>
                           )}
                         </div>
                       </div>
-                      <p className="text-gray-600 mt-1 text-sm sm:text-base">{comment.text}</p>
+                      
+                      {editingComment && editingComment.id === comment.id ? (
+                        <div className="mt-1">
+                          <textarea
+                            className="w-full p-2 border border-gray-200 rounded-lg resize-none focus:outline-none focus:border-blue-500 text-sm sm:text-base"
+                            rows={3}
+                            value={editCommentText}
+                            onChange={(e) => setEditCommentText(e.target.value)}
+                          ></textarea>
+                          <div className="flex space-x-2 mt-2">
+                            <button 
+                              onClick={handleSaveEditedComment}
+                              className="text-sm sm:text-base bg-blue-600 text-white px-3 py-1 rounded-md hover:bg-blue-700 transition-colors"
+                              disabled={!editCommentText.trim()}
+                            >
+                              {t.updateComment || 'Update'}
+                            </button>
+                            <button 
+                              onClick={() => {
+                                setEditingComment(null)
+                                setEditCommentText('')
+                              }}
+                              className="text-sm sm:text-base border border-gray-300 px-3 py-1 rounded-md hover:bg-gray-100 transition-colors"
+                            >
+                              {t.cancel || 'Cancel'}
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <p className="text-gray-600 mt-1 text-sm sm:text-base">{comment.text}</p>
+                      )}
+                      
                       <div className="flex items-center mt-2 text-xs sm:text-sm text-gray-500">
                         <button 
                           onClick={() => handleCommentLike(comment.id)}

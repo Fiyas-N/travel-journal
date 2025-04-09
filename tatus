@@ -1,0 +1,440 @@
+[1mdiff --git a/src/pages/AddPlace.jsx b/src/pages/AddPlace.jsx[m
+[1mindex 369f6a2..17061ce 100644[m
+[1m--- a/src/pages/AddPlace.jsx[m
+[1m+++ b/src/pages/AddPlace.jsx[m
+[36m@@ -9,6 +9,7 @@[m [mimport { motion } from 'framer-motion'[m
+ import { getAllCountries } from '../utils/countries'[m
+ import { getAllStates, getDistrictsForState } from '../utils/indiaLocations'[m
+ import LoadingScreen from '../components/LoadingScreen'[m
+[32m+[m[32mimport translations from '../utils/translations'[m
+ [m
+ const AddPlace = ({ language, setLanguage, languages }) => {[m
+   const navigate = useNavigate()[m
+[36m@@ -35,6 +36,10 @@[m [mconst AddPlace = ({ language, setLanguage, languages }) => {[m
+   const [destinationToDelete, setDestinationToDelete] = useState(null)[m
+   const [editMode, setEditMode] = useState(false)[m
+   const [destinationToEdit, setDestinationToEdit] = useState(null)[m
+[32m+[m[32m  const [fetchingUserDestinations, setFetchingUserDestinations] = useState(false)[m
+[32m+[m[32m  const [viewMode, setViewMode] = useState('add')[m
+[32m+[m
+[32m+[m[32m  const t = translations[language] || translations.en[m
+ [m
+   const categories = [[m
+     { value: 'beach', label: language === 'hi' ? 'समुद्र तट' : 'Beach' },[m
+[36m@@ -46,55 +51,92 @@[m [mconst AddPlace = ({ language, setLanguage, languages }) => {[m
+   ][m
+ [m
+   useEffect(() => {[m
+[31m-    const unsubscribe = auth.onAuthStateChanged((user) => {[m
+[31m-      if (!user) {[m
+[31m-        navigate('/auth')[m
+[31m-      } else {[m
+[32m+[m[32m    if (auth.currentUser) {[m
+         setIsAuthenticated(true)[m
+[32m+[m[32m      fetchUserDestinations()[m
+       }[m
+[31m-    })[m
+[32m+[m[32m  }, [])[m
+ [m
+[31m-    return () => unsubscribe()[m
+[31m-  }, [navigate])[m
+[31m-[m
+[31m-  useEffect(() => {[m
+     const fetchUserDestinations = async () => {[m
+[31m-      if (!auth.currentUser) return;[m
+[32m+[m[32m    if (!auth.currentUser) return[m
+       [m
+       try {[m
+[31m-        setLoading(true);[m
+[31m-        const userDestinationsQuery = query([m
+[32m+[m[32m      setFetchingUserDestinations(true)[m
+[32m+[m[32m      const placesQuery = query([m
+           collection(db, 'places'),[m
+[31m-          where('userId', '==', auth.currentUser.uid)[m
+[31m-        );[m
+[32m+[m[32m        where('addedBy', '==', auth.currentUser.uid)[m
+[32m+[m[32m      )[m
+         [m
+[31m-        const snapshot = await getDocs(userDestinationsQuery);[m
+[31m-        const destinations = snapshot.docs.map(doc => ({[m
+[32m+[m[32m      const placesSnapshot = await getDocs(placesQuery)[m
+[32m+[m[32m      const placesData = placesSnapshot.docs.map(doc => ({[m
+           id: doc.id,[m
+           ...doc.data()[m
+[31m-        }));[m
+[31m-        [m
+[31m-        setUserDestinations(destinations);[m
+[31m-        setError(null);[m
+[32m+[m[32m      }))[m
+[32m+[m[41m      [m
+[32m+[m[32m      placesData.sort((a, b) => {[m
+[32m+[m[32m        const dateA = a.updatedAt || a.createdAt;[m
+[32m+[m[32m        const dateB = b.updatedAt || b.createdAt;[m
+[32m+[m[32m        return new Date(dateB) - new Date(dateA);[m
+[32m+[m[32m      });[m
+[32m+[m[41m      [m
+[32m+[m[32m      setUserDestinations(placesData)[m
+       } catch (err) {[m
+[31m-        console.error('Error fetching user destinations:', err);[m
+[31m-        setError('Failed to load your destinations. Please try again.');[m
+[32m+[m[32m      console.error('Error fetching user destinations:', err)[m
+[32m+[m[32m      setError('Failed to load your destinations')[m
+       } finally {[m
+[31m-        setLoading(false);[m
+[31m-      }[m
+[31m-    };[m
+[32m+[m[32m      setFetchingUserDestinations(false)[m
+[32m+[m[32m    }[m
+[32m+[m[32m  }[m
+[32m+[m
+[32m+[m[32m  const handleEditClick = (destination) => {[m
+[32m+[m[32m    setDestinationToEdit(destination)[m
+[32m+[m[32m    setEditMode(true)[m
+[32m+[m[32m    setViewMode('add')[m
+[32m+[m[41m    [m
+[32m+[m[32m    setPlaceName(destination.name || '')[m
+[32m+[m[32m    setDescription(destination.description || '')[m
+[32m+[m[32m    setCategory(destination.category || '')[m
+[32m+[m[32m    setTags(destination.tags || [])[m
+[32m+[m[32m    setRating(destination.rating || 0)[m
+[32m+[m[32m    setDistrict(destination.district || '')[m
+[32m+[m[32m    setState(destination.state || '')[m
+[32m+[m[32m    setCountry(destination.country || '')[m
+[32m+[m[32m    setImages(destination.images || [])[m
+[32m+[m[41m    [m
+[32m+[m[32m    window.scrollTo({[m
+[32m+[m[32m      top: 0,[m
+[32m+[m[32m      behavior: 'smooth'[m
+[32m+[m[32m    })[m
+[32m+[m[32m  }[m
+ [m
+[31m-    fetchUserDestinations();[m
+[31m-  }, []);[m
+[32m+[m[32m  const handleDeleteClick = (destination) => {[m
+[32m+[m[32m    setDestinationToDelete(destination)[m
+[32m+[m[32m    setShowDeleteModal(true)[m
+[32m+[m[32m  }[m
+ [m
+[31m-  useEffect(() => {[m
+[31m-    if (state === 'India') {[m
+[31m-      const stateDistricts = getDistrictsForState(state);[m
+[31m-      if (district && !stateDistricts.includes(district)) {[m
+[31m-        setDistrict('');[m
+[31m-      }[m
+[32m+[m[32m  const confirmDelete = async () => {[m
+[32m+[m[32m    if (!destinationToDelete) return[m
+[32m+[m[41m    [m
+[32m+[m[32m    try {[m
+[32m+[m[32m      setLoading(true)[m
+[32m+[m[32m      await deleteDoc(doc(db, 'places', destinationToDelete.id))[m
+[32m+[m[41m      [m
+[32m+[m[32m      setUserDestinations(prev => prev.filter(d => d.id !== destinationToDelete.id))[m
+[32m+[m[41m      [m
+[32m+[m[32m      setShowDeleteModal(false)[m
+[32m+[m[32m      setDestinationToDelete(null)[m
+[32m+[m[41m      [m
+[32m+[m[32m      setShowSuccessMessage(true)[m
+[32m+[m[32m      setTimeout(() => {[m
+[32m+[m[32m        setShowSuccessMessage(false)[m
+[32m+[m[32m      }, 2000)[m
+[32m+[m[32m    } catch (err) {[m
+[32m+[m[32m      console.error('Error deleting destination:', err)[m
+[32m+[m[32m      setError('Failed to delete destination')[m
+[32m+[m[32m    } finally {[m
+[32m+[m[32m      setLoading(false)[m
+     }[m
+[31m-  }, [state]);[m
+[32m+[m[32m  }[m
+ [m
+   const compressImage = (file) => {[m
+     return new Promise((resolve) => {[m
+[36m@@ -108,7 +150,6 @@[m [mconst AddPlace = ({ language, setLanguage, languages }) => {[m
+           let width = img.width[m
+           let height = img.height[m
+           [m
+[31m-          // Calculate new dimensions while maintaining aspect ratio[m
+           const maxDimension = 800[m
+           if (width > height) {[m
+             if (width > maxDimension) {[m
+[36m@@ -127,7 +168,6 @@[m [mconst AddPlace = ({ language, setLanguage, languages }) => {[m
+           const ctx = canvas.getContext('2d')[m
+           ctx.drawImage(img, 0, 0, width, height)[m
+           [m
+[31m-          // Compress image to JPEG with reduced quality[m
+           const compressedBase64 = canvas.toDataURL('image/jpeg', 0.6)[m
+           resolve(compressedBase64)[m
+         }[m
+[36m@@ -144,7 +184,7 @@[m [mconst AddPlace = ({ language, setLanguage, languages }) => {[m
+     }[m
+ [m
+     for (const file of files) {[m
+[31m-      if (file.size > 10 * 1024 * 1024) { // Increased size limit since we'll compress[m
+[32m+[m[32m      if (file.size > 10 * 1024 * 1024) {[m
+         setError('Each image must be less than 10MB')[m
+         return[m
+       }[m
+[36m@@ -183,80 +223,22 @@[m [mconst AddPlace = ({ language, setLanguage, languages }) => {[m
+     setTags(tags.filter(tag => tag !== tagToRemove))[m
+   }[m
+ [m
+[31m-  const handleEditClick = (e, destination) => {[m
+[31m-    e.stopPropagation();[m
+[31m-    setDestinationToEdit(destination);[m
+[31m-    setEditMode(true);[m
+[31m-    [m
+[31m-    setPlaceName(destination.name || '');[m
+[31m-    setDescription(destination.description || '');[m
+[31m-    setCategory(destination.category || '');[m
+[31m-    setTags(destination.tags || []);[m
+[31m-    setRating(destination.rating || 0);[m
+[31m-    setDistrict(destination.district || '');[m
+[31m-    setState(destination.state || '');[m
+[31m-    setCountry(destination.country || '');[m
+[31m-    setImages(destination.images || []);[m
+[31m-    [m
+[31m-    window.scrollTo({ top: 0, behavior: 'smooth' });[m
+[31m-  };[m
+[31m-[m
+[31m-  const handleDeleteClick = (e, destination) => {[m
+[31m-    e.stopPropagation();[m
+[31m-    setDestinationToDelete(destination);[m
+[31m-    setShowDeleteModal(true);[m
+[31m-  };[m
+[31m-[m
+[31m-  const confirmDelete = async () => {[m
+[31m-    if (!destinationToDelete) return;[m
+[31m-    [m
+[31m-    try {[m
+[31m-      setLoading(true);[m
+[31m-      await deleteDoc(doc(db, 'places', destinationToDelete.id));[m
+[31m-      [m
+[31m-      setUserDestinations(prev => prev.filter(d => d.id !== destinationToDelete.id));[m
+[31m-      [m
+[31m-      setShowSuccessMessage(true);[m
+[31m-      setTimeout(() => {[m
+[31m-        setShowSuccessMessage(false);[m
+[31m-      }, 2000);[m
+[31m-    } catch (err) {[m
+[31m-      console.error('Error deleting destination:', err);[m
+[31m-      setError('Failed to delete destination. Please try again.');[m
+[31m-    } finally {[m
+[31m-      setLoading(false);[m
+[31m-      setShowDeleteModal(false);[m
+[31m-      setDestinationToDelete(null);[m
+[31m-    }[m
+[31m-  };[m
+[31m-[m
+   const handleSubmit = async (e) => {[m
+     e.preventDefault()[m
+[31m-    setLoading(true)[m
+     setError(null)[m
+[32m+[m[32m    setLoading(true)[m
+ [m
+     try {[m
+[31m-      if (!auth.currentUser) {[m
+[31m-        throw new Error('You must be logged in to add a place')[m
+[31m-      }[m
+[31m-[m
+[31m-      if (images.length === 0) {[m
+[31m-        throw new Error('Please add at least one image')[m
+[31m-      }[m
+[32m+[m[32m      const nameToCheck = placeName.trim().toLowerCase()[m
+[32m+[m[32m      const districtToCheck = district.trim().toLowerCase()[m
+[32m+[m[32m      const stateToCheck = state.trim().toLowerCase()[m
+[32m+[m[32m      const countryToCheck = country.trim().toLowerCase()[m
+ [m
+[31m-      if (!placeName.trim()) {[m
+[32m+[m[32m      if (!nameToCheck) {[m
+         throw new Error('Please enter a place name')[m
+       }[m
+ [m
+[31m-      // Check if a destination with the same name and location already exists[m
+[31m-      const nameToCheck = placeName.trim().toLowerCase();[m
+[31m-      const countryToCheck = country.trim().toLowerCase();[m
+[31m-      const stateToCheck = state.trim().toLowerCase();[m
+[31m-      const districtToCheck = district.trim().toLowerCase();[m
+[31m-      [m
+[31m-      // Only check for duplicates if we're adding a new place (not editing)[m
+       if (!editMode) {[m
+[31m-        // Get places by the current user to check for duplicates (more efficient than fetching all places)[m
+         const placesQuery = query([m
+           collection(db, 'places'),[m
+           where('userId', '==', auth.currentUser.uid)[m
+[36m@@ -264,7 +246,6 @@[m [mconst AddPlace = ({ language, setLanguage, languages }) => {[m
+         [m
+         const placesSnapshot = await getDocs(placesQuery);[m
+         [m
+[31m-        // Check if the user already has a place with the same name and location (case-insensitive)[m
+         const duplicatePlace = placesSnapshot.docs.find(doc => {[m
+           const placeData = doc.data();[m
+           return ([m
+[36m@@ -376,190 +357,95 @@[m [mconst AddPlace = ({ language, setLanguage, languages }) => {[m
+     setDestinationToEdit(null);[m
+   }[m
+ [m
+[31m-  const renderUserDestinations = () => {[m
+[31m-    if (loading && userDestinations.length === 0) {[m
+[32m+[m[32m  if (!isAuthenticated) {[m
+       return ([m
+[31m-        <div className="flex justify-center py-8">[m
+[31m-          <LoadingScreen language={language} type="inline" size="small" message={language === 'hi' ? 'आपके स्थान लोड हो रहे हैं...' : 'Loading your destinations...'} />[m
+[31m-        </div>[m
+[31m-      );[m
+[31m-    }[m
+[31m-[m
+[31m-    if (error && userDestinations.length === 0) {[m
+[31m-      return <div className="text-center py-4 text-red-500">{error}</div>;[m
+[31m-    }[m
+[31m-[m
+[31m-    if (userDestinations.length === 0) {[m
+[31m-      return ([m
+[31m-        <div className="text-center py-8 text-gray-500">[m
+[31m-          {language === 'hi' [m
+[31m-            ? 'आपने अभी तक कोई स्थान नहीं जोड़ा है'[m
+[31m-            : 'You haven\'t added any destinations yet'}[m
+[31m-        </div>[m
+[31m-      );[m
+[31m-    }[m
+[31m-[m
+[31m-    return ([m
+[31m-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">[m
+[31m-        {userDestinations.map((destination, index) => ([m
+[31m-          <motion.div [m
+[31m-            key={destination.id} [m
+[31m-            className="bg-white rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-all duration-300 transform hover:-translate-y-1 cursor-pointer"[m
+[31m-            onClick={() => navigate(`/destination/${destination.id}`)}[m
+[31m-            initial={{ opacity: 0, y: 20 }}[m
+[31m-            animate={{ opacity: 1, y: 0 }}[m
+[31m-            transition={{ [m
+[31m-              duration: 0.4, [m
+[31m-              delay: index * 0.1,[m
+[31m-              ease: "easeOut" [m
+[31m-            }}[m
+[31m-            whileHover={{ [m
+[31m-              scale: 1.03,[m
+[31m-              transition: { duration: 0.2 }[m
+[31m-            }}[m
+[31m-          >[m
+[31m-            <div className="relative h-48 overflow-hidden group">[m
+[31m-              <img [m
+[31m-                src={destination.images?.[0] || destination.image} [m
+[31m-                alt={destination.name} [m
+[31m-                className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"[m
+[31m-              />[m
+[31m-              {(destination.likes || 0) > 100 && ([m
+[31m-                <div className="absolute top-4 right-4 bg-red-500 text-white px-3 py-1 rounded-full text-sm font-medium flex items-center space-x-1">[m
+[31m-                  <i className="fas fa-fire"></i>[m
+[31m-                  <span>{language === 'hi' ? 'ट्रेंडिंग' : 'Trending'}</span>[m
+[31m-                </div>[m
+[31m-              )}[m
+[31m-              [m
+[31m-              <div className="absolute top-2 right-2 flex space-x-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">[m
+[31m-                <button[m
+[31m-                  onClick={(e) => handleEditClick(e, destination)}[m
+[31m-                  className="bg-white p-2 rounded-full shadow-md hover:bg-blue-50 transition-colors"[m
+[31m-                  aria-label="Edit"[m
+[31m-                >[m
+[31m-                  <i className="fas fa-edit text-blue-600"></i>[m
+[31m-                </button>[m
+[32m+[m[32m      <div className="min-h-screen bg-gray-100">[m
+[32m+[m[32m        <Navbar[m[41m [m
+[32m+[m[32m          language={language}[m[41m [m
+[32m+[m[32m          setLanguage={setLanguage}[m[41m [m
+[32m+[m[32m          languages={languages}[m
+[32m+[m[32m          user={auth.currentUser}[m
+[32m+[m[32m          isMenuOpen={isMenuOpen}[m
+[32m+[m[32m          setIsMenuOpen={setIsMenuOpen}[m
+[32m+[m[32m          isProfileOpen={isProfileOpen}[m
+[32m+[m[32m          setIsProfileOpen={setIsProfileOpen}[m
+[32m+[m[32m          setShowLoginModal={setShowLoginModal}[m
+[32m+[m[32m        />[m
+[32m+[m[32m        <div className="flex flex-col items-center justify-center p-4 pt-24 sm:pt-28 md:pt-32 min-h-[80vh]">[m
+[32m+[m[32m          <p className="text-xl text-gray-700 mb-4">Please sign in to add or manage destinations</p>[m
+                 <button[m
+[31m-                  onClick={(e) => handleDeleteClick(e, destination)}[m
+[31m-                  className="bg-white p-2 rounded-full shadow-md hover:bg-red-50 transition-colors"[m
+[31m-                  aria-label="Delete"[m
+[31m-                >[m
+[31m-                  <i className="fas fa-trash-alt text-red-600"></i>[m
+[32m+[m[32m            onClick={() => navigate('/auth')}[m
+[32m+[m[32m            className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"[m
+[32m+[m[32m          >[m
+[32m+[m[32m            Sign In[m
+                 </button>[m
+               </div>[m
+             </div>[m
+[31m-            <div className="p-6">[m
+[31m-              <h3 className="text-xl font-semibold text-gray-900 mb-2">{destination.name}</h3>[m
+[31m-              <p className="text-gray-600 mb-4 line-clamp-2 whitespace-pre-line">{destination.description}</p>[m
+[31m-              <div className="flex items-center gap-1 text-gray-700">[m
+[31m-                <i className="fas fa-star text-yellow-400"></i>[m
+[31m-                <span className="font-semibold">{(destination.averageRating || destination.rating || 0).toFixed(1)}</span>[m
+[31m-                <span className="text-gray-500">({getReviewCount(destination)} reviews)</span>[m
+[31m-              </div>[m
+[31m-            </div>[m
+[31m-          </motion.div>[m
+[31m-        ))}[m
+[31m-      </div>[m
+[31m-    );[m
+[31m-  };[m
+[31m-[m
+[31m-  const renderDeleteModal = () => {[m
+[31m-    if (!showDeleteModal) return null;[m
+[31m-    [m
+[31m-    return ([m
+[31m-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">[m
+[31m-        <motion.div [m
+[31m-          className="bg-white rounded-lg shadow-xl p-6 max-w-md w-full"[m
+[31m-          initial={{ scale: 0.9, opacity: 0 }}[m
+[31m-          animate={{ scale: 1, opacity: 1 }}[m
+[31m-          transition={{ duration: 0.3 }}[m
+[31m-        >[m
+[31m-          <h3 className="text-xl font-bold mb-4">[m
+[31m-            {language === 'hi' ? 'स्थान हटाएं' : 'Delete Destination'}[m
+[31m-          </h3>[m
+[31m-          <p className="mb-6">[m
+[31m-            {language === 'hi' [m
+[31m-              ? `क्या आप वाकई "${destinationToDelete?.name}" को हटाना चाहते हैं?`[m
+[31m-              : `Are you sure you want to delete "${destinationToDelete?.name}"?`}[m
+[31m-          </p>[m
+[31m-          <div className="flex justify-end space-x-4">[m
+[31m-            <button[m
+[31m-              onClick={() => setShowDeleteModal(false)}[m
+[31m-              className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50"[m
+[31m-            >[m
+[31m-              {language === 'hi' ? 'रद्द करें' : 'Cancel'}[m
+[31m-            </button>[m
+[31m-            <button[m
+[31m-              onClick={confirmDelete}[m
+[31m-              className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"[m
+[31m-              disabled={loading}[m
+[31m-            >[m
+[31m-              {loading ? ([m
+[31m-                <span className="flex items-center">[m
+[31m-                  <i className="fas fa-spinner fa-spin mr-2"></i>[m
+[31m-                  {language === 'hi' ? 'हटा रहा है...' : 'Deleting...'}[m
+[31m-                </span>[m
+[31m-              ) : ([m
+[31m-                language === 'hi' ? 'हटाएं' : 'Delete'[m
+[31m-              )}[m
+[31m-            </button>[m
+[31m-          </div>[m
+[31m-        </motion.div>[m
+[31m-      </div>[m
+[31m-    );[m
+[31m-  };[m
+[31m-[m
+[31m-  const formTitle = editMode [m
+[31m-    ? (language === 'hi' ? 'स्थान संपादित करें' : 'Edit Destination') [m
+[31m-    : (language === 'hi' ? 'नया स्थान जोड़ें' : 'Add New Destination');[m
+[31m-[m
+[31m-  const renderCancelEditButton = () => {[m
+[31m-    if (!editMode) return null;[m
+[32m+[m[32m    )[m
+[32m+[m[32m  }[m
+     [m
+     return ([m
+[31m-      <button[m
+[31m-        type="button"[m
+[31m-        onClick={resetForm}[m
+[31m-
