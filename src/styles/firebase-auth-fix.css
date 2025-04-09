@@ -1,0 +1,33 @@
+/* Custom styles for Firebase Auth UI */
+#firebaseui-auth-container,
+.firebaseui-container,
+.mdl-card,
+.firebase-auth-container,
+div[role="dialog"] {
+  margin-top: 0 !important;
+  padding-top: 0 !important;
+}
+
+/* Target the specific Firebase UI elements */
+.firebaseui-card-content,
+.firebaseui-card-footer {
+  padding-top: 0 !important;
+}
+
+/* Style the outer container of the Firebase UI elements */
+body > div#firebaseui-auth-container,
+body > div.firebaseui-container {
+  margin-top: 0 !important; 
+  margin-bottom: 40px !important;
+}
+
+/* For the authentication action buttons */
+.firebaseui-id-submit,
+.firebaseui-id-secondary-link {
+  margin-top: 8px !important;
+}
+
+/* Ensure proper form spacing */
+.firebase-auth-ui form {
+  padding-top: 0 !important;
+} 
